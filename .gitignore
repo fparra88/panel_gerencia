@@ -1,0 +1,9 @@
+.claude/skills.md
+CLAUDE.md
+__pycache__/
+.venv/
+venv/
+.DS_Store
+*.pyc
+documents/
+workflowsn8n/

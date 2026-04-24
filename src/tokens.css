@@ -1,0 +1,113 @@
+/* ===== Zeutica Panel — Design Tokens ===== */
+:root {
+  /* Neutrals — cool dark (240 hue) */
+  --bg-0: oklch(0.15 0.008 240);      /* darkest — app background */
+  --bg-1: oklch(0.185 0.01 240);      /* surface */
+  --bg-2: oklch(0.22 0.012 240);      /* raised panel */
+  --bg-3: oklch(0.26 0.014 240);      /* hover / active bg */
+  --bg-4: oklch(0.30 0.016 240);      /* borders heavy */
+
+  --line: oklch(0.26 0.012 240);      /* 1px border */
+  --line-strong: oklch(0.32 0.014 240);
+
+  /* Text */
+  --fg-0: oklch(0.97 0.005 240);      /* primary */
+  --fg-1: oklch(0.78 0.008 240);      /* secondary */
+  --fg-2: oklch(0.58 0.010 240);      /* tertiary / muted */
+  --fg-3: oklch(0.42 0.010 240);      /* disabled */
+
+  /* Brand — Zeutica blue, modernized */
+  --brand: oklch(0.62 0.17 255);      /* #3b82f6-ish */
+  --brand-hi: oklch(0.72 0.16 255);
+  --brand-lo: oklch(0.48 0.17 255);
+  --brand-bg: oklch(0.32 0.09 255 / 0.35);
+  --brand-ring: oklch(0.62 0.17 255 / 0.4);
+
+  /* States — all share chroma 0.14, lightness 0.68 */
+  --success: oklch(0.72 0.16 155);
+  --success-bg: oklch(0.38 0.09 155 / 0.25);
+  --warn: oklch(0.78 0.15 80);
+  --warn-bg: oklch(0.42 0.09 80 / 0.25);
+  --danger: oklch(0.65 0.20 25);
+  --danger-bg: oklch(0.38 0.11 25 / 0.25);
+  --info: oklch(0.70 0.14 220);
+  --info-bg: oklch(0.36 0.08 220 / 0.25);
+
+  /* Chart palette (oklch-rotated) */
+  --c1: oklch(0.62 0.17 255);
+  --c2: oklch(0.70 0.15 180);
+  --c3: oklch(0.72 0.16 155);
+  --c4: oklch(0.78 0.15 80);
+  --c5: oklch(0.68 0.18 310);
+  --c6: oklch(0.65 0.20 25);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px -2px rgba(0,0,0,0.5);
+  --shadow-lg: 0 16px 40px -8px rgba(0,0,0,0.6);
+  --shadow-glow: 0 0 0 1px oklch(0.62 0.17 255 / 0.3), 0 8px 24px -6px oklch(0.45 0.17 255 / 0.4);
+
+  /* Radius */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 999px;
+
+  /* Spacing scale */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px;  --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px;
+
+  /* Type */
+  --f-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Motion */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 120ms;
+  --dur-mid: 220ms;
+  --dur-slow: 420ms;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg-0);
+  color: var(--fg-0);
+  font-family: var(--f-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; color: inherit; }
+::selection { background: var(--brand-bg); color: var(--fg-0); }
+
+/* Scrollbar */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 5px; border: 2px solid var(--bg-0); }
+*::-webkit-scrollbar-thumb:hover { background: var(--bg-4); }
+
+/* Reusable utility classes */
+.mono { font-family: var(--f-mono); font-feature-settings: 'zero'; }
+.num  { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Keyframes */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.fade-in { animation: fadeIn var(--dur-mid) var(--ease); }
+.slide-up { animation: slideUp var(--dur-mid) var(--ease); }
+
+/* Focus */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--brand-ring);
+}
