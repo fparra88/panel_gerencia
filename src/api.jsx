@@ -2,8 +2,8 @@
 // Primary: real backend. Mock data sólo se conserva para el login demo
 // (cuando no hay servidor). Los datos de negocio vienen SIEMPRE de la API.
 
-const API_BASE = 'http://10.0.9.227:8090';
-//const API_BASE = 'http://3.151.25.133:8090';
+//const API_BASE = 'http://10.0.9.227:8090';
+const API_BASE = 'http://3.151.25.133:8090';
 //const API_BASE = 'http://127.0.0.1:8000';
 const USE_MOCK_LOGIN_FALLBACK = true; // permite demo/login sin backend
 const REQUEST_TIMEOUT = 4000;
