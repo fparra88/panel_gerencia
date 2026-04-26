@@ -21,10 +21,10 @@ function canSee(item, user) {
   return user === 'gerencia';
 }
 
-function Sidebar({ current, setCurrent, user, onLogout, live }) {
+function Sidebar({ current, setCurrent, user, onLogout, live, mobileOpen }) {
   const toast = window.useToast();
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
       <div className="sidebar-head">
         <div className="sidebar-brand">
           <img src="logo.png" alt="Zeutica" className="sidebar-logo-img" />
@@ -82,11 +82,14 @@ function NavItem({ item, active, onClick, canSee, onBlock }) {
   );
 }
 
-function Topbar({ current, user, onOpenNotifs, notifCount, onCmd }) {
+function Topbar({ current, user, onOpenNotifs, notifCount, onCmd, onMenuToggle }) {
   const pageLabel = NAV.find(n => n.key === current)?.label || '';
   return (
     <header className="topbar">
       <div className="topbar-left">
+        <button className="btn btn-ghost btn-icon topbar-menu-btn" onClick={onMenuToggle} aria-label="Abrir menú">
+          <Icon name="menu" size={18}/>
+        </button>
         <h1 className="topbar-title">{pageLabel}</h1>
         <span className="topbar-crumb">
           <Icon name="chevRight" size={12}/>
@@ -98,6 +101,9 @@ function Topbar({ current, user, onOpenNotifs, notifCount, onCmd }) {
           <Icon name="search" size={14}/>
           <span>Buscar productos, clientes, ventas…</span>
           <kbd className="kbd">⌘K</kbd>
+        </button>
+        <button className="btn btn-ghost btn-icon topbar-icon-btn" onClick={onCmd} aria-label="Buscar" title="Buscar (móvil)">
+          <Icon name="search" size={16}/>
         </button>
         <button className="btn btn-ghost btn-icon topbar-icon-btn" onClick={onOpenNotifs}>
           <Icon name="bell" size={16}/>

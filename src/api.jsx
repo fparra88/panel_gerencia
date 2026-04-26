@@ -2,9 +2,8 @@
 // Primary: real backend. Mock data sólo se conserva para el login demo
 // (cuando no hay servidor). Los datos de negocio vienen SIEMPRE de la API.
 
-//const API_BASE = 'http://10.0.9.227:8090';
-const API_BASE = 'http://3.151.25.133:8090';
-//const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = 'http://3.151.25.133:8090'; // servidor en AWS
+//const API_BASE = 'http://127.0.0.1:8000'; // para desarrollo local
 const USE_MOCK_LOGIN_FALLBACK = true; // permite demo/login sin backend
 const REQUEST_TIMEOUT = 4000;
 
@@ -90,6 +89,13 @@ const MOCK = {
     { id: 3, fecha: '2026-04-12', proveedor: 'Químicos del Bajío', factura: 'F-88356', items: 8, monto: 42300, estado: 'Recibida' },
     { id: 4, fecha: '2026-04-10', proveedor: 'Packaging Global', factura: 'F-88312', items: 3, monto: 18200, estado: 'Pendiente pago' },
     { id: 5, fecha: '2026-04-05', proveedor: 'Suministros Médicos MX', factura: 'F-88287', items: 18, monto: 245600, estado: 'Recibida' },
+  ],
+  traspasos: [
+    { id: 1, destino: 'Amazon FBA',         almacen: 'GDL-FBA-01', sku: 'COFPLI-001', cantidad: 200, fecha_registro: '2026-04-20', estado: 'Entregado' },
+    { id: 2, destino: 'Mercado Libre FULL',  almacen: 'MELI-MTY-02', sku: 'GUANITRL-M', cantidad: 50, fecha_registro: '2026-04-18', estado: 'En tránsito' },
+    { id: 3, destino: 'Amazon FBA',         almacen: 'GDL-FBA-01', sku: 'MASKN95-01', cantidad: 300, fecha_registro: '2026-04-15', estado: 'Entregado' },
+    { id: 4, destino: 'Cleanest Choice',    almacen: 'CC-CEDIS',   sku: 'GELALC-250', cantidad: 120, fecha_registro: '2026-04-12', estado: 'En tránsito' },
+    { id: 5, destino: 'Amazon FBA',         almacen: 'GDL-FBA-02', sku: 'BATADES-M', cantidad: 80, fecha_registro: '2026-04-10', estado: 'Entregado' },
   ],
 };
 
@@ -187,11 +193,12 @@ const api = {
     return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
   },
   async traspasos() {
-    const r = await tryFetch('/zeutica/traspaso', {
-      method: 'POST',
-      body: JSON.stringify({ usuario: api.usuario || '', movimientos: [] }),
-    });
-    return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
+    const r = await tryFetch('/zeutica/traspasos/reporte');
+    if (r.ok) return Array.isArray(r.data) ? r.data : (r.data.data || []);
+    return MOCK.traspasos;
+  },
+  async registrarTraspaso(payload) {
+    return tryFetch('/zeutica/traspaso', { method: 'POST', body: JSON.stringify(payload) });
   },
   async cotizacionDetalle(codigo) {
     const r = await tryFetch('/zeutica/consulta/cotizacion', {

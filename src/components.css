@@ -430,6 +430,39 @@
 }
 .spinner-lg { width: 28px; height: 28px; border-width: 3px; }
 
+/* ---------- Responsive overrides ---------- */
+@media (max-width: 480px) {
+  .toast-container {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+  .modal-backdrop {
+    padding: var(--s-3);
+    align-items: flex-end;
+  }
+  .modal {
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    max-height: 92vh;
+  }
+  .card-header {
+    flex-wrap: wrap;
+  }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .tabs {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+  }
+}
+
 /* ---------- Checkbox ---------- */
 .checkbox {
   display: inline-flex;

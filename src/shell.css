@@ -278,3 +278,111 @@
 .notif-title { font-size: 12px; font-weight: 500; color: var(--fg-0); }
 .notif-msg { font-size: 11px; color: var(--fg-2); margin-top: 2px; }
 .notif-time { font-size: 10px; color: var(--fg-3); margin-top: 4px; }
+/* ===== Mobile drawer overlay (hidden on desktop) ===== */
+.sidebar-overlay {
+  display: none;
+}
+
+/* ===== Hamburger button (hidden on desktop) ===== */
+.topbar-menu-btn {
+  display: none;
+}
+
+/* ===== Mobile search icon (hidden on desktop) ===== */
+.topbar-search-icon {
+  display: none;
+}
+
+/* ===== Tablet: ≤ 1024px ===== */
+@media (max-width: 1024px) {
+  .topbar-search {
+    width: 220px;
+  }
+}
+
+/* ===== Mobile: ≤ 768px ===== */
+@media (max-width: 768px) {
+  /* App grid: remove sidebar column */
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  /* Sidebar becomes a fixed slide-in drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform var(--dur-mid) var(--ease);
+    box-shadow: none;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Overlay backdrop */
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: oklch(0.10 0.008 240 / 0.65);
+    backdrop-filter: blur(2px);
+    z-index: 199;
+    animation: fadeIn var(--dur-fast) var(--ease);
+  }
+
+  /* Show hamburger */
+  .topbar-menu-btn {
+    display: inline-flex;
+  }
+
+  /* Topbar: tighter padding */
+  .topbar {
+    padding: 0 12px;
+  }
+
+  /* Hide wide search bar, show icon button instead */
+  .topbar-search {
+    display: none;
+  }
+  .topbar-search-icon {
+    display: inline-flex;
+  }
+
+  /* Hide date crumb to save space */
+  .topbar-crumb {
+    display: none;
+  }
+
+  /* Page: smaller padding */
+  .page {
+    padding: 16px;
+  }
+
+  /* Notif panel: full width on mobile */
+  .notif-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+}
+
+/* ===== Small mobile: ≤ 480px ===== */
+@media (max-width: 480px) {
+  .page {
+    padding: 12px;
+  }
+  .topbar {
+    padding: 0 10px;
+  }
+  .topbar-title {
+    font-size: 13px;
+  }
+  .section-title {
+    font-size: 18px;
+  }
+}

@@ -108,6 +108,13 @@
   .dash-grid-3 { grid-template-columns: 1fr; }
 }
 
+@media (max-width: 480px) {
+  .dash-kpis { grid-template-columns: 1fr; }
+  .hbar-row { grid-template-columns: 90px 1fr 52px; font-size: 11px; gap: 8px; }
+  .hbar-label { font-size: 11px; }
+  .kpi-value { font-size: 22px; }
+}
+
 .plat-row {
   display: flex;
   align-items: center;

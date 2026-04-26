@@ -126,11 +126,13 @@ function App() {
   const [current, setCurrent] = a_uS(() => localStorage.getItem('zeutica-page') || 'dashboard');
   const [cmdOpen, setCmdOpen] = a_uS(false);
   const [notifOpen, setNotifOpen] = a_uS(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = a_uS(false);
   const toast = window.useToast();
 
   a_uE(() => { if (auth) localStorage.setItem('zeutica-auth', JSON.stringify(auth)); }, [auth]);
   a_uE(() => { localStorage.setItem('zeutica-page', current); }, [current]);
   a_uE(() => { window.api.token = auth?.token ?? null; }, [auth]);
+  a_uE(() => { setMobileMenuOpen(false); }, [current]);
 
   // Cmd+K handler
   a_uE(() => {
@@ -192,12 +194,16 @@ function App() {
 
   return (
     <div className="app" data-screen-label={`app-${current}`}>
+      {mobileMenuOpen && (
+        <div className="sidebar-overlay" onClick={() => setMobileMenuOpen(false)} aria-hidden="true"/>
+      )}
       <window.AppShell.Sidebar
         current={current}
         setCurrent={setCurrent}
         user={auth.user}
         onLogout={logout}
         live={auth.live}
+        mobileOpen={mobileMenuOpen}
       />
       <main className="main">
         <div className="app-banner-strip" aria-hidden="true">
@@ -209,6 +215,7 @@ function App() {
           onOpenNotifs={() => setNotifOpen(v => !v)}
           notifCount={unreadCount}
           onCmd={() => setCmdOpen(true)}
+          onMenuToggle={() => setMobileMenuOpen(v => !v)}
         />
         {notifOpen && (
           <NotifPanel notifs={notifs} markAllRead={markAllRead} onClose={() => setNotifOpen(false)}/>
