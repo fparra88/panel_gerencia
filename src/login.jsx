@@ -43,16 +43,10 @@ function LoginScreen({ onLogin }) {
 
       {/* Left — Brand panel */}
       <aside className="login-brand">
-        <div className="login-brand-top">
-          <div className="login-logo">
-            <img src="logo.png" alt="Zeutica" className="login-logo-img" />
-          </div>
-        </div>
-
         <div className="login-brand-middle">
           <h1 className="login-headline">
-            Controla inventario, ventas<br/>
-            y cobranza en tiempo real.
+            Sistema de control operativo<br/>
+            y administracion.
           </h1>
           <p className="login-subhead">
             El sistema operativo de Zeutica para gerencia y equipo comercial.
@@ -82,6 +76,7 @@ function LoginScreen({ onLogin }) {
               </div>
             </div>
           </div>
+
         </div>
 
         <div className="login-brand-bottom">
@@ -95,6 +90,9 @@ function LoginScreen({ onLogin }) {
       {/* Right — Form */}
       <main className="login-form-wrap">
         <form className="login-form slide-up" onSubmit={handleSubmit}>
+          <div className="login-logo" style={{ marginBottom: 8 }}>
+            <img src="logo.png" alt="Zeutica" className="login-logo-img" />
+          </div>
           <div className="login-form-head">
             <h2 className="login-form-title">Iniciar sesión</h2>
             <p className="login-form-sub">Bienvenido de nuevo. Ingresa tus credenciales para continuar.</p>
@@ -119,7 +117,7 @@ function LoginScreen({ onLogin }) {
           <div className="field">
             <div className="login-pw-label">
               <label className="field-label">Contraseña</label>
-              <a className="login-link" onClick={(e) => { e.preventDefault(); toast.info('Contacta a TI', 'Llama a la extensión 2050 para resetear'); }}>¿Olvidaste tu contraseña?</a>
+              <a className="login-link" onClick={(e) => { e.preventDefault(); toast.info('Contacta a TI', 'fernandoparrav@outlook.com'); }}>¿Olvidaste tu contraseña?</a>
             </div>
             <div className="input-group">
               <span className="input-group-icon"><Icon name="lock" size={14}/></span>

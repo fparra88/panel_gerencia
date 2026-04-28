@@ -133,7 +133,7 @@
 .sidebar-avatar {
   width: 30px; height: 30px;
   border-radius: 8px;
-  background: linear-gradient(135deg, oklch(0.48 0.15 255), oklch(0.42 0.18 280));
+  background: linear-gradient(135deg, oklch(0.52 0.15 205), oklch(0.44 0.16 220));
   display: flex; align-items: center; justify-content: center;
   font-size: 11px;
   font-weight: 600;

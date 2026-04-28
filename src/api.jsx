@@ -222,9 +222,35 @@ const api = {
   async registrarVenta(payload) {
     return tryFetch('/zeutica/producto/venta', { method: 'POST', body: JSON.stringify(payload) });
   },
+  async registrarGasto(payload) {
+    return tryFetch('/zeutica/gastos', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async consultarGastos(usuario) {
+    return tryFetch(`/zeutica/consultagastos?usuario=${encodeURIComponent(usuario || '')}`, { method: 'GET' });
+  },
+  async cleanest() {
+    const r = await tryFetch('/zeutica/cleanest');
+    return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
+  },
+  async crearOrden(payload) {
+    return tryFetch('/zeutica/ordenes', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async actualizarOrden(id, payload) {
+    return tryFetch(`/zeutica/cleanest/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  async obtenerFirma(norden) {
+    return tryFetch(`/zeutica/obtener-firma?numero_orden=${encodeURIComponent(norden)}`);
+  },
+  async enviarFirma(payload) {
+    return tryFetch('/zeutica/efirma', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async verificarVenta(norden) {
+    return tryFetch(`/zeutica/verifica-venta/${encodeURIComponent(norden)}`);
+  },
 };
 
 window.api = api;
+window.api.mock = MOCK;
 window.fmt = {
   mxn: (n) => '$' + Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
   int: (n) => Number(n || 0).toLocaleString('es-MX'),

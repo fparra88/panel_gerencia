@@ -16,9 +16,11 @@ const NAV = [
   { key: 'cobranza',     label: 'Monitor Cobranza', icon: 'eye' },
 ];
 
+const GERENCIA_USERS = ['gerencia', 'fparra'];
+
 function canSee(item, user) {
   if (!item.gerencia) return true;
-  return user === 'gerencia';
+  return GERENCIA_USERS.includes(user);
 }
 
 function Sidebar({ current, setCurrent, user, onLogout, live, mobileOpen }) {
@@ -55,7 +57,7 @@ function Sidebar({ current, setCurrent, user, onLogout, live, mobileOpen }) {
           <div className="sidebar-avatar">{(user || '?').slice(0,2).toUpperCase()}</div>
           <div className="sidebar-user-body">
             <div className="sidebar-user-name">{user}</div>
-            <div className="sidebar-user-role">{user === 'gerencia' ? 'Administrador' : 'Operaciones'}</div>
+            <div className="sidebar-user-role">{GERENCIA_USERS.includes(user) ? 'Administrador' : 'Operaciones'}</div>
           </div>
           <Icon name="logout" size={14}/>
         </div>
@@ -114,4 +116,4 @@ function Topbar({ current, user, onOpenNotifs, notifCount, onCmd, onMenuToggle }
   );
 }
 
-window.AppShell = { NAV, Sidebar, Topbar, canSee };
+window.AppShell = { NAV, Sidebar, Topbar, canSee, GERENCIA_USERS };

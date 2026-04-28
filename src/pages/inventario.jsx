@@ -44,7 +44,7 @@ function PageInventario({ user }) {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-secondary btn-sm"><Icon name="download" size={13}/> Exportar</button>
-          {user === 'gerencia' && <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}><Icon name="plus" size={13}/> Nuevo producto</button>}
+          {window.AppShell.GERENCIA_USERS?.includes(user) && <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}><Icon name="plus" size={13}/> Nuevo producto</button>}
         </div>
       </div>
 
@@ -99,7 +99,7 @@ function PageInventario({ user }) {
                     <td className="td-right mono">{window.fmt.mxn(p.costo_total)}</td>
                     <td className="td-right mono" style={{ fontWeight: 500 }}>{window.fmt.mxn(p.precio)}</td>
                     <td className="td-right">
-                      {user === 'gerencia' ? (
+                      {window.AppShell.GERENCIA_USERS.includes(user) ? (
                         <button className="btn btn-ghost btn-sm btn-icon" title="Editar"><Icon name="edit" size={13}/></button>
                       ) : null}
                     </td>
