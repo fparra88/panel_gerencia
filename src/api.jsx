@@ -168,7 +168,10 @@ const api = {
     return r.ok ? r.data : [];
   },
   async crearCliente(payload) {
-    return tryFetch('/zeutica/clientes', { method: 'POST', body: JSON.stringify(payload) });
+    return tryFetch('/zeutica/clientenuevo', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async editarCliente(payload) {
+    return tryFetch('/zeutica/editcliente', { method: 'POST', body: JSON.stringify(payload) });
   },
   async ventasMes(f1, f2) {
     const r = await tryFetch(`/zeutica/ventas/${f1}/${f2}`);
@@ -191,6 +194,16 @@ const api = {
   async compras() {
     const r = await tryFetch('/zeutica/compras');
     return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
+  },
+  async registrarCompra(payload) {
+    return tryFetch('/zeutica/compras', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async ultimosCostos(sku) {
+    const r = await tryFetch(`/zeutica/ultimos-costos/${sku}`);
+    return r.ok ? (r.data.costos || []) : [];
+  },
+  async actualizarCostoPromedio(sku, costo_prom) {
+    return tryFetch('/zeutica/costoPromedio', { method: 'POST', body: JSON.stringify({ sku, costo_prom }) });
   },
   async traspasos() {
     const r = await tryFetch('/zeutica/traspasos/reporte');
@@ -231,6 +244,9 @@ const api = {
   async cleanest() {
     const r = await tryFetch('/zeutica/cleanest');
     return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
+  },
+  async editarProducto(payload) {
+    return tryFetch('/zeutica/productos/editados', { method: 'POST', body: JSON.stringify(payload) });
   },
   async crearOrden(payload) {
     return tryFetch('/zeutica/ordenes', { method: 'POST', body: JSON.stringify(payload) });

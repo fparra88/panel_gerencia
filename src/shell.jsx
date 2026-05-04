@@ -29,7 +29,7 @@ function Sidebar({ current, setCurrent, user, onLogout, live, mobileOpen }) {
     <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
       <div className="sidebar-head">
         <div className="sidebar-brand">
-          <img src="logo.png" alt="Zeutica" className="sidebar-logo-img" />
+          <img src="imagenes/logo.png" alt="Zeutica" className="sidebar-logo-img" />
         </div>
       </div>
 

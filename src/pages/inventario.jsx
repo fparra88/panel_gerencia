@@ -9,6 +9,8 @@ function PageInventario({ user }) {
   const [cat, setCat] = inv_uS('Todas');
   const [stockFilter, setStockFilter] = inv_uS('todos');
   const [showNew, setShowNew] = inv_uS(false);
+  const [editProduct, setEditProduct] = inv_uS(null);
+  const [editSaving, setEditSaving] = inv_uS(false);
 
   inv_uE(() => { (async () => {
     setLoading(true);
@@ -100,7 +102,7 @@ function PageInventario({ user }) {
                     <td className="td-right mono" style={{ fontWeight: 500 }}>{window.fmt.mxn(p.precio)}</td>
                     <td className="td-right">
                       {window.AppShell.GERENCIA_USERS.includes(user) ? (
-                        <button className="btn btn-ghost btn-sm btn-icon" title="Editar"><Icon name="edit" size={13}/></button>
+                        <button className="btn btn-ghost btn-sm btn-icon" title="Editar" onClick={() => setEditProduct({ ...p })}><Icon name="edit" size={13}/></button>
                       ) : null}
                     </td>
                   </tr>
@@ -110,6 +112,66 @@ function PageInventario({ user }) {
           </table>
         </div>
       </div>
+
+      {editProduct && (
+        <div className="modal-backdrop" onClick={() => setEditProduct(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="card-header">
+              <h3 className="card-title">Editar producto — <span className="mono" style={{ fontSize: 13 }}>{editProduct.sku}</span></h3>
+              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setEditProduct(null)}><Icon name="x" size={14}/></button>
+            </div>
+            <div className="card-body" style={{ display: 'grid', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field"><label className="field-label">SKU</label><input className="input" value={editProduct.sku} onChange={e => setEditProduct(p => ({ ...p, sku: e.target.value }))}/></div>
+                <div className="field"><label className="field-label">Categoría</label><input className="input" value={editProduct.categoria} onChange={e => setEditProduct(p => ({ ...p, categoria: e.target.value }))}/></div>
+              </div>
+              <div className="field"><label className="field-label">Nombre</label><input className="input" value={editProduct.nombre} onChange={e => setEditProduct(p => ({ ...p, nombre: e.target.value }))}/></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field"><label className="field-label">Medida</label><input className="input" value={editProduct.medida || ''} onChange={e => setEditProduct(p => ({ ...p, medida: e.target.value }))}/></div>
+                <div className="field"><label className="field-label">Ubicación</label><input className="input" value={editProduct.ubicacion || ''} onChange={e => setEditProduct(p => ({ ...p, ubicacion: e.target.value }))}/></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                <div className="field"><label className="field-label">Stock mín.</label><input className="input" type="number" value={editProduct.stock_minimo} onChange={e => setEditProduct(p => ({ ...p, stock_minimo: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Núm. referencia</label><input className="input" type="number" value={editProduct.numero_referencia || 0} onChange={e => setEditProduct(p => ({ ...p, numero_referencia: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Costo total</label><input className="input" type="number" value={editProduct.costo_total} onChange={e => setEditProduct(p => ({ ...p, costo_total: Number(e.target.value) }))}/></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                <div className="field"><label className="field-label">Precio A</label><input className="input" type="number" value={editProduct.precio} onChange={e => setEditProduct(p => ({ ...p, precio: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Precio B</label><input className="input" type="number" value={editProduct.precio_2 || 0} onChange={e => setEditProduct(p => ({ ...p, precio_2: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Precio C</label><input className="input" type="number" value={editProduct.precio_3 || 0} onChange={e => setEditProduct(p => ({ ...p, precio_3: Number(e.target.value) }))}/></div>
+              </div>
+            </div>
+            <div className="card-footer">
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditProduct(null)}>Cancelar</button>
+              <button className="btn btn-primary btn-sm" disabled={editSaving} onClick={async () => {
+                setEditSaving(true);
+                const payload = {
+                  sku: editProduct.sku,
+                  nombre: editProduct.nombre,
+                  categoria: editProduct.categoria,
+                  medida: editProduct.medida || '',
+                  ubicacion: editProduct.ubicacion || '',
+                  stock_minimo: editProduct.stock_minimo,
+                  numero_referencia: editProduct.numero_referencia || 0,
+                  costo_total: editProduct.costo_total,
+                  precio: editProduct.precio,
+                  precio_2: editProduct.precio_2 || 0,
+                  precio_3: editProduct.precio_3 || 0,
+                };
+                const r = await window.api.editarProducto({ productos: [payload] });
+                setEditSaving(false);
+                if (r.ok) {
+                  setProductos(prev => prev.map(p => p.sku === payload.sku ? { ...p, ...payload } : p));
+                  toast.success('Producto actualizado', payload.nombre);
+                  setEditProduct(null);
+                } else {
+                  toast.error('Error al guardar', r.error || 'Intenta de nuevo');
+                }
+              }}>{editSaving ? <span className="spinner"/> : 'Guardar cambios'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showNew && (
         <div className="modal-backdrop" onClick={() => setShowNew(false)}>

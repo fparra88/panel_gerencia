@@ -578,7 +578,7 @@ function PageCotizaciones({ user }) {
 }
 
 // ---------- Clientes ----------
-const CLIENTE_BLANK = { nombre: '', empresa: '', atencion: '', email: '', telefono: '', ciudad: '', domicilio: '', credito: false };
+const CLIENTE_BLANK = { nombre: '', empresa: '', contacto: '', email: '', telefono: 0, direccion: '', rfc: '', cp: 0, regimen: '', usocdfi: '', frecuencia: '', credito: false, monto_credito: 0 };
 
 function PageClientes() {
   const toast = window.useToast();
@@ -587,15 +587,67 @@ function PageClientes() {
   const [showForm, setShowForm] = rp_uS(false);
   const [form, setForm] = rp_uS(CLIENTE_BLANK);
   const [saving, setSaving] = rp_uS(false);
+  const [editingCliente, setEditingCliente] = rp_uS(null);
 
   rp_uE(() => { (async () => setCli(await window.api.clientes()))(); }, []);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  const abrirEditar = (c) => {
+    setShowForm(false);
+    setEditingCliente(c);
+    setForm({
+      nombre: c.nombre || '', empresa: c.empresa || '', contacto: c.contacto || '',
+      email: c.email || '', telefono: c.telefono || 0, direccion: c.direccion || '',
+      rfc: c.rfc || '', cp: c.cp || 0, regimen: c.regimen || '',
+      usocdfi: c.usocdfi || '', frecuencia: c.frecuencia || '',
+      credito: c.credito || false, monto_credito: c.monto_credito || 0,
+    });
+  };
+
+  const actualizar = async () => {
+    if (!form.nombre.trim()) { toast.error('Campo requerido', 'El nombre del cliente es obligatorio'); return; }
+    setSaving(true);
+    const payload = {
+      nombre: form.nombre, email: form.email, empresa: form.empresa,
+      contacto: form.contacto, telefono: Number(form.telefono) || 0,
+      direccion: form.direccion, rfc: form.rfc, cp: Number(form.cp) || 0,
+      regimen: form.regimen, usocdfi: form.usocdfi, frecuencia: form.frecuencia,
+      usuario: window.api.usuario || '', credito: form.credito,
+      monto_credito: Number(form.monto_credito) || 0, id: editingCliente.id,
+    };
+    const r = await window.api.editarCliente(payload);
+    setSaving(false);
+    if (r.ok) {
+      toast.success('Cliente actualizado', form.nombre);
+      setCli(await window.api.clientes());
+      setForm(CLIENTE_BLANK);
+      setEditingCliente(null);
+    } else {
+      toast.error('Error al guardar', 'Verifica conexión con el servidor');
+    }
+  };
+
   const guardar = async () => {
     if (!form.nombre.trim()) { toast.error('Campo requerido', 'El nombre del cliente es obligatorio'); return; }
     setSaving(true);
-    const r = await window.api.crearCliente(form);
+    const payload = {
+      nombre: form.nombre,
+      email: form.email,
+      empresa: form.empresa,
+      contacto: form.contacto,
+      telefono: Number(form.telefono) || 0,
+      direccion: form.direccion,
+      rfc: form.rfc,
+      cp: Number(form.cp) || 0,
+      regimen: form.regimen,
+      usocdfi: form.usocdfi,
+      frecuencia: form.frecuencia,
+      usuario: window.api.usuario || '',
+      credito: form.credito,
+      monto_credito: Number(form.monto_credito) || 0,
+    };
+    const r = await window.api.crearCliente(payload);
     setSaving(false);
     if (r.ok) {
       toast.success('Cliente creado', form.nombre);
@@ -626,27 +678,89 @@ function PageClientes() {
               <input className="input" value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre completo o razón social"/></div>
             <div className="field"><label className="field-label">Empresa</label>
               <input className="input" value={form.empresa} onChange={e => set('empresa', e.target.value)} placeholder="Empresa (si aplica)"/></div>
-            <div className="field"><label className="field-label">Atención / Contacto</label>
-              <input className="input" value={form.atencion} onChange={e => set('atencion', e.target.value)} placeholder="Nombre del contacto"/></div>
+            <div className="field"><label className="field-label">Contacto</label>
+              <input className="input" value={form.contacto} onChange={e => set('contacto', e.target.value)} placeholder="Nombre del contacto"/></div>
             <div className="field"><label className="field-label">Email</label>
               <input className="input" type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="correo@empresa.mx"/></div>
             <div className="field"><label className="field-label">Teléfono</label>
-              <input className="input" value={form.telefono} onChange={e => set('telefono', e.target.value)} placeholder="33-0000-0000"/></div>
-            <div className="field"><label className="field-label">Ciudad</label>
-              <input className="input" value={form.ciudad} onChange={e => set('ciudad', e.target.value)} placeholder="Guadalajara"/></div>
-            <div className="field" style={{ gridColumn: '1 / -1' }}><label className="field-label">Domicilio</label>
-              <input className="input" value={form.domicilio} onChange={e => set('domicilio', e.target.value)} placeholder="Calle, número, colonia, CP"/></div>
-            <div style={{ gridColumn: '1 / -1' }}>
+              <input className="input" type="number" value={form.telefono} onChange={e => set('telefono', e.target.value)} placeholder="3312345678"/></div>
+            <div className="field"><label className="field-label">RFC</label>
+              <input className="input" value={form.rfc} onChange={e => set('rfc', e.target.value)} placeholder="XAXX010101000"/></div>
+            <div className="field"><label className="field-label">CP</label>
+              <input className="input" type="number" value={form.cp} onChange={e => set('cp', e.target.value)} placeholder="44100"/></div>
+            <div className="field"><label className="field-label">Régimen fiscal</label>
+              <input className="input" value={form.regimen} onChange={e => set('regimen', e.target.value)} placeholder="Persona Moral / Física"/></div>
+            <div className="field"><label className="field-label">Uso CDFI</label>
+              <input className="input" value={form.usocdfi} onChange={e => set('usocdfi', e.target.value)} placeholder="G03 - Gastos en general"/></div>
+            <div className="field"><label className="field-label">Frecuencia de compra</label>
+              <input className="input" value={form.frecuencia} onChange={e => set('frecuencia', e.target.value)} placeholder="Mensual / Semanal"/></div>
+            <div className="field" style={{ gridColumn: '1 / -1' }}><label className="field-label">Dirección</label>
+              <input className="input" value={form.direccion} onChange={e => set('direccion', e.target.value)} placeholder="Calle, número, colonia, CP"/></div>
+            <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', fontSize: 13 }}>
                 <input type="checkbox" checked={form.credito} onChange={e => set('credito', e.target.checked)}/>
                 Habilitar línea de crédito
               </label>
+              {form.credito && (
+                <div className="field" style={{ margin: 0, flex: 1, maxWidth: 200 }}>
+                  <label className="field-label">Monto crédito</label>
+                  <input className="input" type="number" value={form.monto_credito} onChange={e => set('monto_credito', e.target.value)} placeholder="0"/>
+                </div>
+              )}
             </div>
           </div>
           <div className="card-footer">
             <button className="btn btn-secondary btn-sm" onClick={() => { setShowForm(false); setForm(CLIENTE_BLANK); }}>Cancelar</button>
             <button className="btn btn-primary btn-sm" disabled={!form.nombre.trim() || saving} onClick={guardar}>
               {saving ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Guardar cliente</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editingCliente && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-header"><h3 className="card-title">Editar cliente — #{editingCliente.id}</h3></div>
+          <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="field"><label className="field-label">Nombre *</label>
+              <input className="input" value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre completo o razón social"/></div>
+            <div className="field"><label className="field-label">Empresa</label>
+              <input className="input" value={form.empresa} onChange={e => set('empresa', e.target.value)} placeholder="Empresa (si aplica)"/></div>
+            <div className="field"><label className="field-label">Contacto</label>
+              <input className="input" value={form.contacto} onChange={e => set('contacto', e.target.value)} placeholder="Nombre del contacto"/></div>
+            <div className="field"><label className="field-label">Email</label>
+              <input className="input" type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="correo@empresa.mx"/></div>
+            <div className="field"><label className="field-label">Teléfono</label>
+              <input className="input" type="number" value={form.telefono} onChange={e => set('telefono', e.target.value)} placeholder="3312345678"/></div>
+            <div className="field"><label className="field-label">RFC</label>
+              <input className="input" value={form.rfc} onChange={e => set('rfc', e.target.value)} placeholder="XAXX010101000"/></div>
+            <div className="field"><label className="field-label">CP</label>
+              <input className="input" type="number" value={form.cp} onChange={e => set('cp', e.target.value)} placeholder="44100"/></div>
+            <div className="field"><label className="field-label">Régimen fiscal</label>
+              <input className="input" value={form.regimen} onChange={e => set('regimen', e.target.value)} placeholder="Persona Moral / Física"/></div>
+            <div className="field"><label className="field-label">Uso CDFI</label>
+              <input className="input" value={form.usocdfi} onChange={e => set('usocdfi', e.target.value)} placeholder="G03 - Gastos en general"/></div>
+            <div className="field"><label className="field-label">Frecuencia de compra</label>
+              <input className="input" value={form.frecuencia} onChange={e => set('frecuencia', e.target.value)} placeholder="Mensual / Semanal"/></div>
+            <div className="field" style={{ gridColumn: '1 / -1' }}><label className="field-label">Dirección</label>
+              <input className="input" value={form.direccion} onChange={e => set('direccion', e.target.value)} placeholder="Calle, número, colonia, CP"/></div>
+            <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', fontSize: 13 }}>
+                <input type="checkbox" checked={form.credito} onChange={e => set('credito', e.target.checked)}/>
+                Habilitar línea de crédito
+              </label>
+              {form.credito && (
+                <div className="field" style={{ margin: 0, flex: 1, maxWidth: 200 }}>
+                  <label className="field-label">Monto crédito</label>
+                  <input className="input" type="number" value={form.monto_credito} onChange={e => set('monto_credito', e.target.value)} placeholder="0"/>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="card-footer">
+            <button className="btn btn-secondary btn-sm" onClick={() => { setEditingCliente(null); setForm(CLIENTE_BLANK); }}>Cancelar</button>
+            <button className="btn btn-primary btn-sm" disabled={!form.nombre.trim() || saving} onClick={actualizar}>
+              {saving ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Actualizar cliente</>}
             </button>
           </div>
         </div>
@@ -667,7 +781,7 @@ function PageClientes() {
         </div>
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>ID</th><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Ciudad</th><th>Crédito</th><th className="td-right">Saldo</th></tr></thead>
+            <thead><tr><th>ID</th><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Ciudad</th><th>Crédito</th><th className="td-right">Saldo</th><th></th></tr></thead>
             <tbody>
               {filtered.map(c => (
                 <tr key={c.id}>
@@ -678,6 +792,7 @@ function PageClientes() {
                   <td className="td-muted">{c.ciudad}</td>
                   <td>{c.credito ? <span className="badge badge-success"><span className="badge-dot"/>Activo</span> : <span className="badge">No</span>}</td>
                   <td className="td-right mono" style={{ fontWeight: c.saldo > 0 ? 500 : 400, color: c.saldo > 0 ? 'var(--warn)' : 'var(--fg-2)' }}>{window.fmt.mxn(c.saldo)}</td>
+                  <td><button className="btn btn-sm btn-secondary" onClick={() => abrirEditar(c)}><Icon name="edit" size={12}/></button></td>
                 </tr>
               ))}
             </tbody>
@@ -1066,7 +1181,7 @@ function PageGastos({ user }) {
       otros: 'ESTE ARTICULO FUE USADO EN ALMACEN',
       plataforma: 'BODEGA',
       usuario: user || 'usuario',
-      condicion_pago: 'USO BODEGA'    
+      condicion_pago: 'N/A'
     });
     setSubmittingSku(false);
     setSkuPendiente(null);
@@ -1598,14 +1713,210 @@ function PageCleanest() {
 
 // ---------- Compras ----------
 function PageCompras() {
+  const toast = window.useToast();
   const [compras, setCompras] = rp_uS([]);
+  const [showForm, setShowForm] = rp_uS(false);
+  const [numFactura, setNumFactura] = rp_uS('');
+  const [proveedor, setProveedor] = rp_uS('');
+  const [ivaPct, setIvaPct] = rp_uS(16);
+  const [productos, setProductos] = rp_uS([]);
+  const [selectedSku, setSelectedSku] = rp_uS('');
+  const [costosBd, setCostosBd] = rp_uS([]);
+  const [qtyItem, setQtyItem] = rp_uS(1);
+  const [costoUnit, setCostoUnit] = rp_uS(0);
+  const [descItem, setDescItem] = rp_uS(0);
+  const [carrito, setCarrito] = rp_uS([]);
+  const [confirm, setConfirm] = rp_uS(null);
+  const [submitting, setSubmitting] = rp_uS(false);
+
   rp_uE(() => { (async () => setCompras(await window.api.compras()))(); }, []);
+
+  rp_uE(() => {
+    if (!showForm) return;
+    (async () => {
+      const prods = await window.api.productos();
+      setProductos(prods);
+      if (prods.length > 0) setSelectedSku(prods[0].sku);
+    })();
+  }, [showForm]);
+
+  rp_uE(() => {
+    if (!selectedSku) return;
+    (async () => setCostosBd(await window.api.ultimosCostos(selectedSku)))();
+  }, [selectedSku]);
+
+  const prodObj = rp_uM(() => productos.find(p => p.sku === selectedSku), [productos, selectedSku]);
+  const listaProm = costoUnit > 0 ? [...costosBd, costoUnit] : costosBd;
+  const costoProm = listaProm.length > 0 ? listaProm.reduce((s, v) => s + v, 0) / listaProm.length : 0;
+  const subtotalItem = qtyItem * costoProm * (1 - descItem / 100);
+
+  const subtotalBruto = carrito.reduce((s, it) => s + it.qty * it.costo_unit, 0);
+  const descTotal     = carrito.reduce((s, it) => s + it.qty * it.costo_unit * (it.descuento_pct / 100), 0);
+  const baseGrav      = subtotalBruto - descTotal;
+  const ivaMonto      = baseGrav * (ivaPct / 100);
+  const totalFinal    = baseGrav + ivaMonto;
+
+  const resetForm = () => { setCarrito([]); setNumFactura(''); setProveedor(''); setIvaPct(16); setShowForm(false); };
+
+  const agregarItem = () => {
+    if (!selectedSku || qtyItem < 1 || costoUnit <= 0) {
+      toast.error('Datos incompletos', 'Selecciona producto, cantidad > 0 y costo > 0');
+      return;
+    }
+    setCarrito(prev => {
+      const idx = prev.findIndex(it => it.sku === selectedSku);
+      if (idx >= 0) {
+        return prev.map((it, i) => {
+          if (i !== idx) return it;
+          const nQty = it.qty + qtyItem;
+          return { ...it, qty: nQty, costo_unit: costoUnit, descuento_pct: descItem,
+            subtotal: nQty * costoProm * (1 - descItem / 100), costo_prom: costoProm };
+        });
+      }
+      return [...prev, { sku: selectedSku, nombre: prodObj?.nombre || selectedSku,
+        qty: qtyItem, costo_unit: costoUnit, descuento_pct: descItem,
+        subtotal: subtotalItem, costo_prom: costoProm }];
+    });
+    toast.success('Agregado', prodObj?.nombre || selectedSku);
+    setQtyItem(1); setCostoUnit(0); setDescItem(0);
+  };
+
+  const registrar = async () => {
+    setSubmitting(true);
+    const payload = carrito.map(item => ({
+      sku: item.sku, nombre: item.nombre, stock_bodega: item.qty,
+      costo_total: item.costo_unit, num_factura: confirm.numFactura,
+      proveedor: confirm.proveedor, descuento_pct: item.descuento_pct,
+      iva_pct: ivaPct, subtotal: item.subtotal, usuario: window.api.usuario || 'usuario',
+    }));
+    const r = await window.api.registrarCompra(payload);
+    if (r.ok) {
+      await Promise.all(carrito.map(it => window.api.actualizarCostoPromedio(it.sku, it.costo_prom)));
+      toast.success('Factura registrada', confirm.numFactura);
+      setConfirm(null); resetForm();
+      setCompras(await window.api.compras());
+    } else {
+      toast.error('Error al registrar', 'Verifica conexión con el servidor');
+      setConfirm(null);
+    }
+    setSubmitting(false);
+  };
+
   return (
     <div className="page">
       <div className="section-header">
         <div><h2 className="section-title">Compras a proveedores</h2><p className="section-subtitle">Órdenes de compra y estatus de recepción.</p></div>
-        <button className="btn btn-primary btn-sm"><Icon name="plus" size={13}/> Nueva orden</button>
+        <button className={`btn btn-sm ${showForm ? 'btn-secondary' : 'btn-primary'}`}
+          onClick={() => { setShowForm(v => !v); setCarrito([]); }}>
+          <Icon name="plus" size={13}/> {showForm ? 'Cancelar' : 'Nueva orden'}
+        </button>
       </div>
+
+      {showForm && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-header"><h3 className="card-title">Registrar factura de compra</h3></div>
+          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 100px', gap: 12 }}>
+              <div className="field"><label className="field-label"># Factura</label>
+                <input className="input" value={numFactura} onChange={e => setNumFactura(e.target.value)} placeholder="FAC-2024-001"/></div>
+              <div className="field"><label className="field-label">Proveedor</label>
+                <input className="input" value={proveedor} onChange={e => setProveedor(e.target.value)} placeholder="Nombre del proveedor"/></div>
+              <div className="field"><label className="field-label">IVA (%)</label>
+                <input className="input mono" type="number" min="0" max="100" step="0.5" value={ivaPct} onChange={e => setIvaPct(Number(e.target.value) || 0)}/></div>
+            </div>
+            <div style={{ padding: 12, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', border: '1px solid var(--line)' }}>
+              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Agregar ítem al carrito</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div className="field" style={{ margin: 0 }}>
+                  <label className="field-label">Producto / SKU</label>
+                  <select className="select" value={selectedSku} onChange={e => setSelectedSku(e.target.value)}>
+                    {productos.length === 0
+                      ? <option>Cargando...</option>
+                      : productos.map(p => <option key={p.sku} value={p.sku}>{p.sku} — {p.nombre}</option>)}
+                  </select>
+                </div>
+                <div className="field" style={{ margin: 0 }}>
+                  <label className="field-label">Cantidad</label>
+                  <input className="input mono" type="number" min="1" value={qtyItem} onChange={e => setQtyItem(Math.max(1, Number(e.target.value) || 1))}/>
+                </div>
+                <div className="field" style={{ margin: 0 }}>
+                  <label className="field-label">Costo unit.</label>
+                  <input className="input mono" type="number" min="0" step="0.01" value={costoUnit} onChange={e => setCostoUnit(Number(e.target.value) || 0)} placeholder="0.00"/>
+                </div>
+                <div className="field" style={{ margin: 0 }}>
+                  <label className="field-label">Descuento (%)</label>
+                  <input className="input mono" type="number" min="0" max="100" step="0.5" value={descItem} onChange={e => setDescItem(Number(e.target.value) || 0)}/>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>
+                  Costo prom: <span className="mono" style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{window.fmt.mxn(costoProm)}</span>
+                  {' · '}Subtotal ítem: <span className="mono" style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{window.fmt.mxn(subtotalItem)}</span>
+                  {costosBd.length > 0 && <span style={{ color: 'var(--fg-3)' }}> · {costosBd.length} reg. históricos</span>}
+                </span>
+                <button className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }} onClick={agregarItem}>
+                  <Icon name="plus" size={13}/> Agregar
+                </button>
+              </div>
+            </div>
+            {carrito.length > 0 && (
+              <>
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead><tr><th>SKU</th><th>Nombre</th><th className="td-right">Cant</th><th className="td-right">Costo unit.</th><th className="td-right">Desc</th><th className="td-right">Subtotal</th><th></th></tr></thead>
+                    <tbody>
+                      {carrito.map(it => (
+                        <tr key={it.sku}>
+                          <td className="mono" style={{ fontSize: 12 }}>{it.sku}</td>
+                          <td>{it.nombre}</td>
+                          <td className="td-right mono">{it.qty}</td>
+                          <td className="td-right mono">{window.fmt.mxn(it.costo_unit)}</td>
+                          <td className="td-right mono">{it.descuento_pct > 0 ? `${it.descuento_pct}%` : '—'}</td>
+                          <td className="td-right mono" style={{ fontWeight: 500 }}>{window.fmt.mxn(it.subtotal)}</td>
+                          <td><button className="btn btn-ghost btn-sm" onClick={() => setCarrito(prev => prev.filter(x => x.sku !== it.sku))}>✕</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', gap: '4px 24px', fontSize: 13, textAlign: 'right' }}>
+                    <span style={{ color: 'var(--fg-2)' }}>Subtotal bruto</span><span className="mono">{window.fmt.mxn(subtotalBruto)}</span>
+                    {descTotal > 0 && <><span style={{ color: 'var(--fg-2)' }}>Descuento</span><span className="mono">-{window.fmt.mxn(descTotal)}</span></>}
+                    <span style={{ color: 'var(--fg-2)' }}>IVA ({ivaPct}%)</span><span className="mono">{window.fmt.mxn(ivaMonto)}</span>
+                    <span style={{ fontWeight: 700 }}>Total factura</span><span className="mono" style={{ fontWeight: 700, fontSize: 15 }}>{window.fmt.mxn(totalFinal)}</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          {carrito.length > 0 && (
+            <div className="card-footer">
+              <button className="btn btn-secondary btn-sm" onClick={resetForm}>Cancelar</button>
+              <button className="btn btn-primary btn-sm" onClick={() => {
+                if (!numFactura.trim()) { toast.error('Falta factura', 'Ingresa el número de factura'); return; }
+                if (!proveedor.trim()) { toast.error('Falta proveedor', 'Ingresa el nombre del proveedor'); return; }
+                setConfirm({ numFactura: numFactura.trim(), proveedor: proveedor.trim(), total: totalFinal, nItems: carrito.length });
+              }}><Icon name="check" size={13}/> Registrar factura</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {confirm && (
+        <div className="card" style={{ marginBottom: 16, border: '1px solid var(--warn)' }}>
+          <div className="card-body">
+            <p style={{ margin: 0, fontSize: 13 }}>¿Confirmas registrar factura <strong>{confirm.numFactura}</strong> de <strong>{confirm.proveedor}</strong> con <strong>{confirm.nItems} ítems</strong> por <strong>{window.fmt.mxn(confirm.total)}</strong>?</p>
+          </div>
+          <div className="card-footer">
+            <button className="btn btn-secondary btn-sm" onClick={() => setConfirm(null)} disabled={submitting}>Cancelar</button>
+            <button className="btn btn-primary btn-sm" onClick={registrar} disabled={submitting}>
+              {submitting ? <><span className="spinner"/> Registrando...</> : <><Icon name="check" size={13}/> Sí, registrar</>}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="dash-kpis">
         <window.MiniStat label="Total del mes" value={window.fmt.mxn(compras.reduce((s,c) => s + c.monto, 0))} icon="cash"/>
         <window.MiniStat label="Órdenes" value={compras.length} icon="doc"/>
