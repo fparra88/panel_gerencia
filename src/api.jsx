@@ -248,6 +248,9 @@ const api = {
   async editarProducto(payload) {
     return tryFetch('/zeutica/productos/editados', { method: 'POST', body: JSON.stringify(payload) });
   },
+  async registrarConteo(payload) {
+    return tryFetch('/zeutica/inventario/conteo', { method: 'POST', body: JSON.stringify(payload) });
+  },
   async crearOrden(payload) {
     return tryFetch('/zeutica/ordenes', { method: 'POST', body: JSON.stringify(payload) });
   },

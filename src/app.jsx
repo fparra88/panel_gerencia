@@ -179,6 +179,7 @@ function App() {
   const pages = {
     dashboard:    window.PageDashboard,
     inventario:   window.PageInventario,
+    conteo:       window.PageConteo,
     ventas:       window.PageVentas,
     cotizaciones: window.PageCotizaciones,
     clientes:     window.PageClientes,
