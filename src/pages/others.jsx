@@ -1170,13 +1170,13 @@ function PageGastos({ user }) {
   const confirmarSku = async () => {
     setSubmittingSku(true);
     const p = skuPendiente;
-    const r = await window.api.registrarVenta({
-      id_venta: 0,
+    const r = await window.api.registrarGastoSku({
+      id_venta: Math.floor(Math.random() * 90000000) + 10000000,
       sku: p.sku,
       producto: p.nombre,
-      stock_bodega: p.cantidad,
-      precio: 0.00,      
-      fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      stock_clean: p.cantidad,
+      precio: 0.00,
+      fecha: new Date().toISOString(),
       nombreComprador: 'USO DE BODEGA',
       otros: 'ESTE ARTICULO FUE USADO EN ALMACEN',
       plataforma: 'BODEGA',

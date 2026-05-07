@@ -161,3 +161,25 @@
 }
 .cot-load-row:last-child { border-bottom: none; }
 .cot-load-row:hover { background: var(--bg-2); }
+
+/* ===== Thermal ticket 80mm ===== */
+#ticket-print { display: none; }
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 3mm 4mm;
+  }
+  body > *:not(#ticket-print) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  #ticket-print {
+    display: block !important;
+    visibility: visible !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 72mm;
+  }
+}

@@ -235,6 +235,9 @@ const api = {
   async registrarVenta(payload) {
     return tryFetch('/zeutica/producto/venta', { method: 'POST', body: JSON.stringify(payload) });
   },
+  async registrarGastoSku(payload) {
+    return tryFetch('/zeutica/cleanest/venta', { method: 'POST', body: JSON.stringify(payload) });
+  },
   async registrarGasto(payload) {
     return tryFetch('/zeutica/gastos', { method: 'POST', body: JSON.stringify(payload) });
   },

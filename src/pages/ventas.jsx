@@ -1,6 +1,92 @@
 // ===== Zeutica — Ventas (carrito mejorado) =====
 const { useState: vt_uS, useEffect: vt_uE, useMemo: vt_uM } = React;
 
+function printTicket({ id_venta, fecha, cartItems, subtotal, descMonto, descuento, iva, total, cliente, metPago, plataforma, usuario, cotCargada }) {
+  const hora = new Date().toTimeString().slice(0, 5);
+  const fmt = window.fmt.mxn;
+
+  const rows = cartItems.map(i => `
+    <tr>
+      <td style="padding:2px 0;vertical-align:top;">
+        <span style="font-size:8px;color:#777;">${i.sku}</span><br>
+        <span>${i.nombre}</span>
+      </td>
+      <td style="text-align:center;vertical-align:top;padding:2px 4px;">${i.cantidad}</td>
+      <td style="text-align:right;vertical-align:top;padding:2px 0;white-space:nowrap;">${fmt(i.precio)}</td>
+      <td style="text-align:right;vertical-align:top;padding:2px 0;white-space:nowrap;font-weight:600;">${fmt(i.total)}</td>
+    </tr>`).join('');
+
+  const el = document.createElement('div');
+  el.id = 'ticket-print';
+  el.innerHTML = `
+    <div style="font-family:'Courier New',Courier,monospace;font-size:10px;width:72mm;color:#000;background:#fff;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:5px;">
+        <img src="imagenes/logo.png" style="max-width:58mm;height:auto;display:block;margin:0 auto 3px;" alt="Zeutica"/>
+        <div style="font-size:8px;letter-spacing:.06em;color:#555;">SISTEMA DE VENTAS</div>
+      </div>
+      <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:3px 0;margin:3px 0;text-align:center;">
+        <div style="font-size:12px;font-weight:bold;letter-spacing:1px;">TICKET DE VENTA</div>
+      </div>
+      <div style="font-size:9px;line-height:1.7;margin:4px 0;">
+        <div><b>Folio:</b> ${id_venta}</div>
+        <div><b>Fecha:</b> ${fecha} ${hora}</div>
+        <div><b>Cajero:</b> ${usuario}</div>
+        <div><b>Cliente:</b> ${cliente || '—'}</div>
+        <div><b>Plataforma:</b> ${plataforma}</div>
+        <div><b>Pago:</b> ${metPago}</div>
+        ${cotCargada ? `<div><b>Cot.:</b> ${cotCargada}</div>` : ''}
+      </div>
+      <div style="border-top:1px dashed #000;margin-bottom:2px;"></div>
+      <table style="width:100%;border-collapse:collapse;font-size:9px;">
+        <thead>
+          <tr style="border-bottom:1px dashed #000;">
+            <th style="text-align:left;padding:2px 0;">Descripción</th>
+            <th style="text-align:center;padding:2px 4px;">Cant</th>
+            <th style="text-align:right;padding:2px 0;">P.U.</th>
+            <th style="text-align:right;padding:2px 0;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;font-size:9px;line-height:1.8;">
+        <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${fmt(subtotal)}</span></div>
+        ${descuento > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Descuento (${descuento}%):</span><span>-${fmt(descMonto)}</span></div>` : ''}
+        <div style="display:flex;justify-content:space-between;"><span>IVA (16%):</span><span>${fmt(iva)}</span></div>
+      </div>
+      <div style="border-top:2px solid #000;margin-top:4px;padding-top:4px;display:flex;justify-content:space-between;font-size:14px;font-weight:bold;">
+        <span>TOTAL:</span><span>${fmt(total)}</span>
+      </div>
+      <div style="text-align:center;margin-top:8px;border-top:1px dashed #000;padding-top:5px;font-size:8px;color:#555;line-height:1.8;">
+        <div style="font-size:9px;font-weight:bold;">¡Gracias por su compra!</div>
+        <div>Conserve este comprobante</div>
+        <div style="margin-top:4px;letter-spacing:2px;">* * * * * * * * * * *</div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(el);
+
+  let printed = false;
+  const doPrint = () => {
+    if (printed) return;
+    printed = true;
+    window.print();
+    const cleanup = () => {
+      if (document.body.contains(el)) document.body.removeChild(el);
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+  };
+
+  const img = el.querySelector('img');
+  if (img) {
+    img.onload = doPrint;
+    img.onerror = doPrint;
+    setTimeout(doPrint, 1500);
+  } else {
+    doPrint();
+  }
+}
+
 function PageVentas({ user }) {
   const toast = window.useToast();
   const [productos, setProductos] = vt_uS([]);
@@ -17,6 +103,7 @@ function PageVentas({ user }) {
   const [cotCargada, setCotCargada] = vt_uS(null);
   const [loadingCot, setLoadingCot] = vt_uS(false);
   const [submitting, setSubmitting] = vt_uS(false);
+  const [lastTicket, setLastTicket] = vt_uS(null);
 
   vt_uE(() => { (async () => {
     setProductos(await window.api.productos());
@@ -104,12 +191,22 @@ function PageVentas({ user }) {
     if (cotCargada) {
       await window.api.marcarCotizacionVendida(cotCargada);
     }
+    const ticketData = {
+      id_venta, fecha,
+      cartItems: [...cart],
+      subtotal, descMonto, descuento, iva, total,
+      cliente, metPago, plataforma,
+      usuario: user,
+      cotCargada,
+    };
     setSubmitting(false);
     if (allOk) {
       toast.success(`Venta ${id_venta} registrada`, `${cart.length} artículos · ${window.fmt.mxn(total)}`);
     } else {
       toast.warn(`Venta ${id_venta} (parcial/sin conexión)`, `Modo demo · ${window.fmt.mxn(total)}`);
     }
+    setLastTicket(ticketData);
+    printTicket(ticketData);
     clearCart();
     setCliente(null);
     setCotCargada(null);
@@ -336,6 +433,11 @@ function PageVentas({ user }) {
 
           <div className="card-footer">
             <button className="btn btn-secondary btn-sm" onClick={() => { clearCart(); setCliente(null); setCotCargada(null); }}>Cancelar</button>
+            {lastTicket && cart.length === 0 && (
+              <button className="btn btn-ghost btn-sm" onClick={() => printTicket(lastTicket)}>
+                <Icon name="doc" size={13}/> Reimprimir
+              </button>
+            )}
             <button className="btn btn-primary btn-sm" disabled={!puedeProcesar || submitting} onClick={procesar}>
               {submitting
                 ? <><span className="spinner"/> Enviando...</>

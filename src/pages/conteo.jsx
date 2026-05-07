@@ -176,6 +176,35 @@ function ResultadoConteo({ resultados, fecha, onReiniciar, user }) {
     return true;
   }), [resultados, filtro, q]);
 
+  const descargarReporte = () => {
+    const fechaStr = fecha ? fecha.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+    const rows = [
+      ['SKU', 'Producto', 'Categoría', 'Ubicación', 'Stock DB', 'Conteo Físico', 'Diferencia', 'Valor Diferencia MXN'],
+      ...resultados
+        .filter(r => r.contado !== null)
+        .map(r => [
+          r.sku,
+          r.nombre,
+          r.categoria,
+          r.ubicacion || '',
+          r.stock_bodega,
+          r.contado,
+          r.diferencia > 0 ? `+${r.diferencia}` : r.diferencia,
+          r.diferencia !== 0 ? (Math.abs(r.diferencia) * r.costo_total).toFixed(2) : '0.00',
+        ]),
+    ];
+    const csv = rows
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `conteo-zeutica-${fechaStr}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleEnviar = async () => {
     setSending(true);
     const payload = {
@@ -184,9 +213,7 @@ function ResultadoConteo({ resultados, fecha, onReiniciar, user }) {
         .filter(r => r.contado !== null)
         .map(r => ({
           sku: r.sku,
-          stock_db: r.stock_bodega,
-          contado: r.contado,
-          diferencia: r.diferencia,
+          conteo: r.contado,
         })),
     };
     const r = await window.api.registrarConteo(payload);
@@ -209,6 +236,9 @@ function ResultadoConteo({ resultados, fecha, onReiniciar, user }) {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary btn-sm" onClick={descargarReporte}>
+            <Icon name="download" size={13}/> Descargar CSV
+          </button>
           <button className="btn btn-secondary btn-sm" onClick={onReiniciar}>
             <Icon name="refresh" size={13}/> Nuevo conteo
           </button>

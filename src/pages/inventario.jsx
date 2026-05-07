@@ -158,7 +158,7 @@ function PageInventario({ user }) {
                   precio_2: editProduct.precio_2 || 0,
                   precio_3: editProduct.precio_3 || 0,
                 };
-                const r = await window.api.editarProducto({ productos: [payload] });
+                const r = await window.api.editarProducto({ usuario: user, productos: [payload] });
                 setEditSaving(false);
                 if (r.ok) {
                   setProductos(prev => prev.map(p => p.sku === payload.sku ? { ...p, ...payload } : p));
