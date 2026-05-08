@@ -192,7 +192,7 @@ const api = {
     return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
   },
   async compras() {
-    const r = await tryFetch('/zeutica/compras');
+    const r = await tryFetch('/zeutica/registro-compras');
     return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
   },
   async registrarCompra(payload) {
@@ -236,7 +236,7 @@ const api = {
     return tryFetch('/zeutica/producto/venta', { method: 'POST', body: JSON.stringify(payload) });
   },
   async registrarGastoSku(payload) {
-    return tryFetch('/zeutica/cleanest/venta', { method: 'POST', body: JSON.stringify(payload) });
+    return tryFetch('/zeutica/producto/venta', { method: 'POST', body: JSON.stringify(payload) });
   },
   async registrarGasto(payload) {
     return tryFetch('/zeutica/gastos', { method: 'POST', body: JSON.stringify(payload) });

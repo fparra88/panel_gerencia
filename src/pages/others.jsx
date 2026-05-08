@@ -1,5 +1,5 @@
 // ===== Zeutica — Remaining Pages (compact) =====
-const { useState: rp_uS, useEffect: rp_uE, useMemo: rp_uM } = React;
+const { useState: rp_uS, useEffect: rp_uE, useMemo: rp_uM, useRef: rp_uR } = React;
 
 async function generarPDFCotizacion({ codigo, clienteObj, clienteNombre, items, descuentoPct, descuentoMonto, subtotalOriginal, subtotalDesc, costoEnvio, iva, totalFinal, formaPago, comentario }) {
   const { jsPDF } = window.jspdf;
@@ -1123,8 +1123,7 @@ function PageGastos({ user }) {
 
   rp_uE(() => {
     (async () => {
-      const [g, prods] = await Promise.all([window.api.gastos(), window.api.productos()]);
-      setGastos(g);
+      const prods = await window.api.productos();
       setProductos(prods);
       if (prods.length > 0) setSelectedSku(prods[0].sku);
     })();
@@ -1171,12 +1170,12 @@ function PageGastos({ user }) {
     setSubmittingSku(true);
     const p = skuPendiente;
     const r = await window.api.registrarGastoSku({
-      id_venta: Math.floor(Math.random() * 90000000) + 10000000,
+      id_venta: Math.floor(Math.random() * 900000000) + 100000000,
       sku: p.sku,
       producto: p.nombre,
-      stock_clean: p.cantidad,
+      stock_bodega: p.cantidad,
       precio: 0.00,
-      fecha: new Date().toISOString(),
+      fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
       nombreComprador: 'USO DE BODEGA',
       otros: 'ESTE ARTICULO FUE USADO EN ALMACEN',
       plataforma: 'BODEGA',
@@ -1456,15 +1455,22 @@ function FirmaViewer({ ordenNum }) {
   const [open, setOpen] = rp_uS(false);
   const [firma, setFirma] = rp_uS(null);
   const [loading, setLoading] = rp_uS(false);
-  const load = async () => { setLoading(true); const r = await window.api.obtenerFirma(ordenNum); setFirma(r.ok ? r.data : null); setLoading(false); };
+  const load = async () => {
+    setLoading(true);
+    const r = await window.api.obtenerFirma(ordenNum);
+    let data = r.ok ? r.data : null;
+    if (Array.isArray(data)) data = data[0] ?? null;
+    setFirma(data);
+    setLoading(false);
+  };
   const toggle = () => { if (!open) load(); setOpen(v => !v); };
   return (
     <div style={{ marginTop: 10 }}>
       <button className="btn btn-ghost btn-sm" onClick={toggle}><Icon name="eye" size={13}/> {open ? 'Ocultar firma' : 'Ver firma registrada'}</button>
       {open && (loading
         ? <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 4 }}>Cargando...</div>
-        : firma?.firma_base64
-          ? <div style={{ marginTop: 8 }}><img src={`data:image/png;base64,${firma.firma_base64}`} alt="Firma" style={{ maxWidth: 350, border: '1px solid var(--line)', borderRadius: 'var(--r-sm)' }}/>{firma.fecha_firma && <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 4 }}>{window.fmt.datetime(firma.fecha_firma)}</div>}</div>
+        : firma?.firma_digital
+          ? <div style={{ marginTop: 8 }}><img src={`data:image/png;base64,${firma.firma_digital}`} alt="Firma" style={{ maxWidth: 350, border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', filter: 'invert(1)' }}/>{firma.fecha_firma && <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 4 }}>{window.fmt.datetime(firma.fecha_firma)}</div>}</div>
           : <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 4 }}>Sin firma registrada.</div>
       )}
     </div>
@@ -1484,7 +1490,7 @@ function FirmaCanvas({ ordenNum, onSend }) {
   const clear = () => { const c=canvasRef.current; c.getContext('2d').clearRect(0,0,c.width,c.height); setHasStroke(false); setConfirm(false); };
   const send = async () => {
     const b64 = canvasRef.current.toDataURL('image/png').replace('data:image/png;base64,','');
-    const payload = { numero_orden: ordenNum, firma_base64: b64, usuario: window.api.usuario||'sistema', fecha_firma: new Date().toISOString(), firma_cleanest: 'Se firmo una orden de cleanest' };
+    const payload = { numero_orden: ordenNum, firma_base64: b64, usuario: window.api.usuario||'sistema', fecha_firma: new Date().toISOString().slice(0,19).replace('T',' '), firma_cleanest: 'Se firmo una orden de cleanest' };
     const r = await window.api.enviarFirma(payload);
     if (r.ok) { toast.success('Firma enviada', ordenNum); fetch(N8N_HOOK,{method:'POST',body:JSON.stringify(payload),headers:{'Content-Type':'application/json'}}).catch(()=>{}); clear(); onSend?.(); }
     else toast.error('Error', r.error||'No se pudo enviar');
@@ -1573,7 +1579,7 @@ function HistorialCard({ pedido, inv }) {
       const r = await window.api.verificarVenta(nordenShort);
       if (r.ok && !r.data?.registrada) {
         const item = inv.find(p=>p.sku===pedido.sku)||{};
-        const payload = { id_venta:nordenShort, sku:pedido.sku, stock_bodega:+pedido.cantidad, precio:parseFloat(item.precio_clean||0), producto:item.nombre||pedido.sku, fecha:new Date().toISOString(), nombreComprador:'CLEANEST CHOICE', otros:'FARMACEUTICA', plataforma:'SISTEMA ZEUTICA', usuario:window.api.usuario||'sistema' };
+        const payload = { id_venta:nordenShort, sku:pedido.sku, stock_bodega:+pedido.cantidad, precio:parseFloat(item.precio_clean||0), producto:item.nombre||pedido.sku, fecha:new Date().toISOString().slice(0,19).replace('T',' '), nombreComprador:'CLEANEST CHOICE', otros:'FARMACEUTICA', plataforma:'SISTEMA ZEUTICA', usuario:window.api.usuario||'sistema', condicion_pago: "CREDITO" };
         const rv = await window.api.registrarVenta(payload);
         if (rv.ok) toast.success('Venta registrada', `Orden ${nordenShort}`);
       }
@@ -1610,6 +1616,7 @@ function PageCleanest() {
   const [sku, setSku] = rp_uS('');
   const [cantidad, setCantidad] = rp_uS(1);
   const [fechaPromesa, setFechaPromesa] = rp_uS(new Date().toISOString().slice(0,10));
+  const fechaRef = rp_uR(null);
   const [pending, setPending] = rp_uS(null);
   const [loadingOrden, setLoadingOrden] = rp_uS(false);
   const toast = window.useToast();
@@ -1666,7 +1673,15 @@ function PageCleanest() {
                   {inv.map(p=><option key={p.sku} value={p.sku}>{p.sku} — {p.nombre}</option>)}
                 </select>
               </div>
-              <div className="field"><label className="field-label">Fecha Promesa</label><input className="input" type="date" value={fechaPromesa} onChange={e=>setFechaPromesa(e.target.value)}/></div>
+              <div className="field">
+                <label className="field-label">Fecha Promesa</label>
+                <div style={{ display:'flex', gap:6 }}>
+                  <input ref={fechaRef} className="input" type="date" value={fechaPromesa} onChange={e=>setFechaPromesa(e.target.value)} style={{ flex:1 }}/>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={()=>fechaRef.current?.showPicker()} title="Abrir calendario" style={{ flexShrink:0 }}>
+                    <Icon name="calendar" size={14}/>
+                  </button>
+                </div>
+              </div>
             </div>
             <button className="btn btn-primary" style={{ marginTop:16, width:'100%' }} type="submit">Registrar Orden</button>
           </form>
@@ -1748,7 +1763,7 @@ function PageCompras() {
   const prodObj = rp_uM(() => productos.find(p => p.sku === selectedSku), [productos, selectedSku]);
   const listaProm = costoUnit > 0 ? [...costosBd, costoUnit] : costosBd;
   const costoProm = listaProm.length > 0 ? listaProm.reduce((s, v) => s + v, 0) / listaProm.length : 0;
-  const subtotalItem = qtyItem * costoProm * (1 - descItem / 100);
+  const subtotalItem = qtyItem * costoUnit * (1 - descItem / 100);
 
   const subtotalBruto = carrito.reduce((s, it) => s + it.qty * it.costo_unit, 0);
   const descTotal     = carrito.reduce((s, it) => s + it.qty * it.costo_unit * (it.descuento_pct / 100), 0);
@@ -1770,7 +1785,7 @@ function PageCompras() {
           if (i !== idx) return it;
           const nQty = it.qty + qtyItem;
           return { ...it, qty: nQty, costo_unit: costoUnit, descuento_pct: descItem,
-            subtotal: nQty * costoProm * (1 - descItem / 100), costo_prom: costoProm };
+            subtotal: nQty * costoUnit * (1 - descItem / 100), costo_prom: costoProm };
         });
       }
       return [...prev, { sku: selectedSku, nombre: prodObj?.nombre || selectedSku,
@@ -1918,25 +1933,26 @@ function PageCompras() {
       )}
 
       <div className="dash-kpis">
-        <window.MiniStat label="Total del mes" value={window.fmt.mxn(compras.reduce((s,c) => s + c.monto, 0))} icon="cash"/>
-        <window.MiniStat label="Órdenes" value={compras.length} icon="doc"/>
-        <window.MiniStat label="En tránsito" value={compras.filter(c => c.estado === 'En tránsito').length} icon="transfer" tone="warn"/>
-        <window.MiniStat label="Por pagar" value={compras.filter(c => c.estado === 'Pendiente pago').length} icon="alert" tone="danger"/>
+        <window.MiniStat label="Total registrado" value={window.fmt.mxn(compras.reduce((s,c) => s + (Number(c.total)||0), 0))} icon="cash"/>
+        <window.MiniStat label="Registros" value={compras.length} icon="doc"/>
+        <window.MiniStat label="Proveedores" value={new Set(compras.map(c => c.proveedor)).size} icon="transfer"/>
+        <window.MiniStat label="Facturas" value={new Set(compras.map(c => c.num_factura)).size} icon="doc"/>
       </div>
       <div className="card" style={{ marginTop: 16 }}>
-        <div className="card-header"><h3 className="card-title">Historial</h3></div>
+        <div className="card-header"><h3 className="card-title">Historial de compras</h3></div>
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Fecha</th><th>Proveedor</th><th>Factura</th><th className="td-right">Items</th><th className="td-right">Monto</th><th>Estado</th></tr></thead>
+            <thead><tr><th>SKU</th><th>Nombre</th><th className="td-right">Cant</th><th className="td-right">Costo unit.</th><th>Factura</th><th>Proveedor</th><th className="td-right">Total c/IVA</th></tr></thead>
             <tbody>
               {compras.map(c => (
                 <tr key={c.id}>
-                  <td className="td-muted">{window.fmt.date(c.fecha)}</td>
-                  <td style={{ fontWeight: 500 }}>{c.proveedor}</td>
-                  <td className="mono td-muted">{c.factura}</td>
-                  <td className="td-right mono">{c.items}</td>
-                  <td className="td-right mono" style={{ fontWeight: 500 }}>{window.fmt.mxn(c.monto)}</td>
-                  <td><span className={`badge badge-${c.estado === 'Recibida' ? 'success' : c.estado === 'En tránsito' ? 'warn' : 'danger'}`}><span className="badge-dot"/>{c.estado}</span></td>
+                  <td className="mono td-muted" style={{ fontSize: 12 }}>{c.sku}</td>
+                  <td style={{ fontWeight: 500 }}>{c.nombre}</td>
+                  <td className="td-right mono">{c.stock_bodega}</td>
+                  <td className="td-right mono">{window.fmt.mxn(c.costo_total)}</td>
+                  <td className="mono td-muted">{c.num_factura}</td>
+                  <td>{c.proveedor}</td>
+                  <td className="td-right mono" style={{ fontWeight: 500 }}>{window.fmt.mxn(c.total)}</td>
                 </tr>
               ))}
             </tbody>
