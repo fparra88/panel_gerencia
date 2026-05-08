@@ -232,6 +232,9 @@ const api = {
       body: JSON.stringify({ vendido: 1, codigo_cotizacion: codigo }),
     });
   },
+  async relacionFactura(records) {
+    return tryFetch('/zeutica/relacionFactura', { method: 'POST', body: JSON.stringify(records) });
+  },
   async registrarVenta(payload) {
     return tryFetch('/zeutica/producto/venta', { method: 'POST', body: JSON.stringify(payload) });
   },

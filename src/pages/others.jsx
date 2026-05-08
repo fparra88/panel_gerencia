@@ -151,6 +151,8 @@ async function generarPDFCotizacion({ codigo, clienteObj, clienteNombre, items, 
 }
 
 // ---------- Cotizaciones ----------
+const N8N_COTI_HOOK = "https://n8n-n8n.i4mjht.easypanel.host/webhook/0c67219b-97b4-4cb3-9e7d-6fe4ece90a6d";
+
 const COT_COMENTARIOS = [
   'ENVIO GRATIS EN COMPRAS MAYORES A $7000.00 MAS IVA, TIEMPO DE ENTREGA DE 4-7 DIAS HABILES.',
   'EL ENVIO SE REALIZARA POR PAQUETERIA PAQUETE EXPRESS EN CASO DE REQUERIR UNA PAQUETERIA EN PARTICULAR ESTA SE COTIZARA DE MANERA ADICIONAL.',
@@ -182,8 +184,28 @@ function PageCotizaciones({ user }) {
   const [comentarioCustom, setComentarioCustom] = rp_uS('');
   const [submitting, setSubmitting] = rp_uS(false);
   const [verLoading, setVerLoading] = rp_uS(null);
+  const [showConsultor, setShowConsultor] = rp_uS(false);
+  const [editRelaciones, setEditRelaciones] = rp_uS({});
+  const [savingRelacion, setSavingRelacion] = rp_uS(false);
 
   rp_uE(() => { (async () => setCots(await window.api.cotizaciones()))(); }, []);
+
+  rp_uE(() => {
+    if (cots.length === 0) return;
+    setEditRelaciones(prev => {
+      const next = { ...prev };
+      cots.forEach(c => {
+        if (!next[c.codigo_cotizacion]) {
+          next[c.codigo_cotizacion] = {
+            relacion_factura: c.relacion_factura || '',
+            metodo_pago: c.metodo_pago || '',
+            fecha_pago: c.fecha_pago ? c.fecha_pago.slice(0, 10) : '',
+          };
+        }
+      });
+      return next;
+    });
+  }, [cots]);
 
   rp_uE(() => {
     if (!showForm) return;
@@ -314,17 +336,40 @@ function PageCotizaciones({ user }) {
       }
       setCots(await window.api.cotizaciones());
       resetForm();
+      fetch(N8N_COTI_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
     } else {
       toast.error('Error al guardar', 'Verifica conexión con el servidor');
     }
   };
 
-  const verCotizacion = async (codigo) => {
+  const guardarRelaciones = async () => {
+    const records = Object.entries(editRelaciones)
+      .filter(([, v]) => v.relacion_factura || v.metodo_pago || v.fecha_pago)
+      .map(([codigo, v]) => ({
+        codigo_cotizacion: codigo,
+        relacion_factura: v.relacion_factura || null,
+        metodo_pago: v.metodo_pago || null,
+        fecha_pago: v.fecha_pago || null,
+      }));
+    if (records.length === 0) { toast.warn('Sin cambios', 'Ingresa al menos una relación'); return; }
+    setSavingRelacion(true);
+    const r = await window.api.relacionFactura(records);
+    setSavingRelacion(false);
+    if (r.ok) {
+      toast.success('Relaciones guardadas', `${records.length} cotización(es) actualizadas`);
+      fetch(N8N_COTI_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(records) }).catch(() => {});
+      setCots(await window.api.cotizaciones());
+    } else {
+      toast.error('Error', 'No se pudo guardar las relaciones');
+    }
+  };
+
+  const verCotizacion = (codigo) => {
     setVerLoading(codigo);
     try {
-      const data = await window.api.cotizacionDetalle(codigo);
-      if (data?.pdf) {
-        const byteChars = atob(data.pdf);
+      const c = cots.find(x => x.codigo_cotizacion === codigo);
+      if (c?.pdf) {
+        const byteChars = atob(c.pdf);
         const byteArr = new Uint8Array(byteChars.length);
         for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
         const blob = new Blob([byteArr], { type: 'application/pdf' });
@@ -333,7 +378,7 @@ function PageCotizaciones({ user }) {
         toast.warn('Sin PDF', 'Esta cotización no tiene PDF adjunto');
       }
     } catch(_) {
-      toast.error('Error', 'No se pudo cargar la cotización');
+      toast.error('Error', 'No se pudo abrir el PDF');
     } finally {
       setVerLoading(null);
     }
@@ -355,9 +400,14 @@ function PageCotizaciones({ user }) {
           <h2 className="section-title">Cotizaciones</h2>
           <p className="section-subtitle">Genera y da seguimiento a cotizaciones de clientes.</p>
         </div>
-        <button className={`btn btn-sm ${showForm ? 'btn-secondary' : 'btn-primary'}`} onClick={() => setShowForm(v => !v)}>
-          <Icon name="plus" size={13}/> {showForm ? 'Cerrar' : 'Nueva cotización'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className={`btn btn-sm ${showConsultor ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setShowConsultor(v => !v)}>
+            <Icon name="doc" size={13}/> {showConsultor ? 'Cerrar consultor' : 'Relacionar facturas'}
+          </button>
+          <button className={`btn btn-sm ${showForm ? 'btn-secondary' : 'btn-primary'}`} onClick={() => setShowForm(v => !v)}>
+            <Icon name="plus" size={13}/> {showForm ? 'Cerrar' : 'Nueva cotización'}
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -519,6 +569,67 @@ function PageCotizaciones({ user }) {
               {submitting
                 ? <><span className="spinner"/> Guardando...</>
                 : <><Icon name="check" size={13}/> Guardar cotización{nuevoCodigo ? ` · ${nuevoCodigo}` : ''}</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showConsultor && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-header">
+            <div>
+              <h3 className="card-title">Relación de facturas</h3>
+              <p className="card-subtitle">Vincula factura, método y fecha de pago a cotizaciones</p>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr>
+                <th>Código</th><th>Cliente</th><th className="td-right">Total</th>
+                <th>N° Factura</th><th>Método de pago</th><th>Fecha de pago</th>
+              </tr></thead>
+              <tbody>
+                {cots.map(c => {
+                  const ed = editRelaciones[c.codigo_cotizacion] || {};
+                  const setEd = (k, v) => setEditRelaciones(prev => ({
+                    ...prev,
+                    [c.codigo_cotizacion]: { ...(prev[c.codigo_cotizacion] || {}), [k]: v },
+                  }));
+                  return (
+                    <tr key={c.codigo_cotizacion}>
+                      <td className="mono" style={{ fontSize: 12, fontWeight: 500 }}>{c.codigo_cotizacion}</td>
+                      <td style={{ fontSize: 12 }}>{c.empresa}</td>
+                      <td className="td-right mono" style={{ fontSize: 12 }}>{window.fmt.mxn(c.total)}</td>
+                      <td style={{ minWidth: 130 }}>
+                        <input className="input" style={{ fontSize: 12, padding: '4px 8px' }}
+                          value={ed.relacion_factura || ''}
+                          onChange={e => setEd('relacion_factura', e.target.value)}
+                          placeholder="N° factura"/>
+                      </td>
+                      <td style={{ minWidth: 150 }}>
+                        <select className="select" style={{ fontSize: 12, padding: '4px 8px' }}
+                          value={ed.metodo_pago || ''}
+                          onChange={e => setEd('metodo_pago', e.target.value)}>
+                          <option value="">—</option>
+                          {['EFECTIVO','CREDITO','TRANSFERENCIA','TARJETA','DEPOSITO','POR DEFINIR'].map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td style={{ minWidth: 140 }}>
+                        <input className="input" type="date" style={{ fontSize: 12, padding: '4px 8px' }}
+                          value={ed.fecha_pago || ''}
+                          onChange={e => setEd('fecha_pago', e.target.value)}/>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="card-footer">
+            <button className="btn btn-primary btn-sm" disabled={savingRelacion} onClick={guardarRelaciones}>
+              {savingRelacion ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Guardar relaciones</>}
             </button>
           </div>
         </div>
