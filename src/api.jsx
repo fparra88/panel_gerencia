@@ -7,7 +7,7 @@ const API_BASE = 'http://3.151.25.133:8090'; // servidor en AWS
 const USE_MOCK_LOGIN_FALLBACK = true; // permite demo/login sin backend
 const REQUEST_TIMEOUT = 4000;
 
-// ---- MOCK DATA (realistic) ----
+// ---- Datos para modo prueba ----
 const MOCK = {
   productos: [
     { id: 1, sku: 'COFPLI-001', nombre: 'Cofia Plisada Blanca', categoria: 'COFIA', medida: 'PZA', ubicacion: 'CEDIS-E5', stock_bodega: 1240, stock_minimo: 300, costo_total: 4.20, precio: 8.50, precio_2: 7.90, precio_3: 7.20, precio_clean: 6.80, precio_amazon: 12.90 },
@@ -139,8 +139,7 @@ const api = {
     }
     if (USE_MOCK_LOGIN_FALLBACK) {
       const valid = [
-        { u: 'gerencia', p: 'gerencia' },
-        { u: 'fparra', p: 'fparra' },
+        { u: 'gerencia', p: 'gerencia' },        
         { u: 'ventas', p: 'ventas' },
         { u: 'demo', p: 'demo' },
       ];
@@ -234,6 +233,9 @@ const api = {
   },
   async relacionFactura(records) {
     return tryFetch('/zeutica/relacionFactura', { method: 'POST', body: JSON.stringify(records) });
+  },
+  async firmarCotizacion(payload) {
+    return tryFetch('/zeutica/firma-ventas', { method: 'POST', body: JSON.stringify(payload) });
   },
   async registrarVenta(payload) {
     return tryFetch('/zeutica/producto/venta', { method: 'POST', body: JSON.stringify(payload) });

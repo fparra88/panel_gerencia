@@ -1,4 +1,4 @@
-// ===== Zeutica — Dashboard Page =====
+// ===== Zeutica — Dashboard Pagina =====
 const { useState: ds_uS, useEffect: ds_uE, useMemo: ds_uM } = React;
 
 function PageDashboard({ user }) {

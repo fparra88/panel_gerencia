@@ -151,7 +151,8 @@ async function generarPDFCotizacion({ codigo, clienteObj, clienteNombre, items, 
 }
 
 // ---------- Cotizaciones ----------
-const N8N_COTI_HOOK = "https://n8n-n8n.i4mjht.easypanel.host/webhook/0c67219b-97b4-4cb3-9e7d-6fe4ece90a6d";
+const N8N_COTI_HOOK  = "https://n8n-n8n.i4mjht.easypanel.host/webhook/0c67219b-97b4-4cb3-9e7d-6fe4ece90a6d";
+const N8N_FIRMA_HOOK = "https://n8n-n8n.i4mjht.easypanel.host/webhook/5a5caa1a-3ad5-44ff-9f47-d791f937f2d0";
 
 const COT_COMENTARIOS = [
   'ENVIO GRATIS EN COMPRAS MAYORES A $7000.00 MAS IVA, TIEMPO DE ENTREGA DE 4-7 DIAS HABILES.',
@@ -159,6 +160,82 @@ const COT_COMENTARIOS = [
   'ENTREGA EN BODEGA, HORARIO DE 10AM A 2PM',
   'OTROS...',
 ];
+
+function CotFirmaCanvas({ onSave, onCancel, saving }) {
+  const canvasRef = rp_uR(null);
+  const drawing = rp_uR(false);
+
+  const getPos = (e, canvas) => {
+    const rect = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+  };
+
+  const startDraw = (e) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    drawing.current = true;
+    const ctx = canvas.getContext('2d');
+    const { x, y } = getPos(e, canvas);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e) => {
+    e.preventDefault();
+    if (!drawing.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    const { x, y } = getPos(e, canvas);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDraw = () => { drawing.current = false; };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const save = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const b64 = canvas.toDataURL('image/png').split(',')[1];
+    onSave(b64);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <canvas
+        ref={canvasRef}
+        width={460}
+        height={160}
+        style={{ border: '1px solid var(--line-strong)', borderRadius: 'var(--r-md)', background: '#fff', cursor: 'crosshair', touchAction: 'none', width: '100%' }}
+        onMouseDown={startDraw}
+        onMouseMove={draw}
+        onMouseUp={stopDraw}
+        onMouseLeave={stopDraw}
+        onTouchStart={startDraw}
+        onTouchMove={draw}
+        onTouchEnd={stopDraw}
+      />
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button className="btn btn-ghost btn-sm" onClick={clearCanvas}>Limpiar</button>
+        <button className="btn btn-secondary btn-sm" onClick={onCancel}>Cancelar</button>
+        <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
+          {saving ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Guardar firma</>}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function PageCotizaciones({ user }) {
   const toast = window.useToast();
@@ -187,6 +264,9 @@ function PageCotizaciones({ user }) {
   const [showConsultor, setShowConsultor] = rp_uS(false);
   const [editRelaciones, setEditRelaciones] = rp_uS({});
   const [savingRelacion, setSavingRelacion] = rp_uS(false);
+  const [firmaModal, setFirmaModal] = rp_uS(null);
+  const [verFirmaModal, setVerFirmaModal] = rp_uS(null);
+  const [savingFirma, setSavingFirma] = rp_uS(false);
 
   rp_uE(() => { (async () => setCots(await window.api.cotizaciones()))(); }, []);
 
@@ -339,6 +419,27 @@ function PageCotizaciones({ user }) {
       fetch(N8N_COTI_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
     } else {
       toast.error('Error al guardar', 'Verifica conexión con el servidor');
+    }
+  };
+
+  const guardarFirma = async (firma_base64) => {
+    if (!firmaModal) return;
+    setSavingFirma(true);
+    const payload = {
+      codigo_cotizacion: firmaModal.codigo,
+      firma_base64,
+      usuario: user || '',
+      fecha_firma: new Date().toISOString(),
+    };
+    const r = await window.api.firmarCotizacion(payload);
+    setSavingFirma(false);
+    if (r.ok) {
+      toast.success('Firma guardada', firmaModal.codigo);
+      fetch(N8N_FIRMA_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
+      setCots(prev => prev.map(c => c.codigo_cotizacion === firmaModal.codigo ? { ...c, firma_envio: firma_base64 } : c));
+      setFirmaModal(null);
+    } else {
+      toast.error('Error al guardar firma', 'Verifica conexión con el servidor');
     }
   };
 
@@ -586,7 +687,7 @@ function PageCotizaciones({ user }) {
             <table className="table">
               <thead><tr>
                 <th>Código</th><th>Cliente</th><th className="td-right">Total</th>
-                <th>N° Factura</th><th>Método de pago</th><th>Fecha de pago</th>
+                <th>N° Factura</th><th>Método de pago</th><th>Fecha de pago</th><th>Firma</th>
               </tr></thead>
               <tbody>
                 {cots.map(c => {
@@ -621,6 +722,19 @@ function PageCotizaciones({ user }) {
                           value={ed.fecha_pago || ''}
                           onChange={e => setEd('fecha_pago', e.target.value)}/>
                       </td>
+                      <td style={{ minWidth: 130 }}>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}
+                            onClick={() => setFirmaModal({ codigo: c.codigo_cotizacion })}>
+                            <Icon name="edit" size={12}/> Firmar
+                          </button>
+                          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}
+                            disabled={!c.firma_envio}
+                            onClick={() => setVerFirmaModal({ codigo: c.codigo_cotizacion, firma_b64: c.firma_envio })}>
+                            <Icon name="eye" size={12}/> Ver
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -631,6 +745,63 @@ function PageCotizaciones({ user }) {
             <button className="btn btn-primary btn-sm" disabled={savingRelacion} onClick={guardarRelaciones}>
               {savingRelacion ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Guardar relaciones</>}
             </button>
+          </div>
+        </div>
+      )}
+
+      {firmaModal && (
+        <div className="modal-backdrop" onClick={() => setFirmaModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="card-header" style={{ padding: '16px 20px 12px' }}>
+              <div>
+                <h3 className="card-title">Captura de firma digital</h3>
+                <p className="card-subtitle mono" style={{ fontSize: 11 }}>{firmaModal.codigo}</p>
+              </div>
+              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setFirmaModal(null)}><Icon name="x" size={14}/></button>
+            </div>
+            <div style={{ padding: '0 20px 20px' }}>
+              <p style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 10 }}>Dibuja la firma con el ratón o trackpad:</p>
+              <CotFirmaCanvas
+                onSave={guardarFirma}
+                onCancel={() => setFirmaModal(null)}
+                saving={savingFirma}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {verFirmaModal && (
+        <div className="modal-backdrop" onClick={() => setVerFirmaModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="card-header" style={{ padding: '16px 20px 12px' }}>
+              <div>
+                <h3 className="card-title">Firma digital</h3>
+                <p className="card-subtitle mono" style={{ fontSize: 11 }}>{verFirmaModal.codigo}</p>
+              </div>
+              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setVerFirmaModal(null)}><Icon name="x" size={14}/></button>
+            </div>
+            <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {verFirmaModal.firma_b64 ? (
+                <>
+                  <img
+                    src={`data:image/png;base64,${verFirmaModal.firma_b64}`}
+                    alt={`Firma ${verFirmaModal.codigo}`}
+                    style={{ width: '100%', border: '1px solid var(--line)', borderRadius: 'var(--r-md)', background: '#fff' }}
+                  />
+                  <a
+                    href={`data:image/png;base64,${verFirmaModal.firma_b64}`}
+                    download={`firma_${verFirmaModal.codigo}.png`}
+                    className="btn btn-ghost btn-sm"
+                    style={{ alignSelf: 'flex-end' }}
+                  >
+                    <Icon name="doc" size={13}/> Descargar PNG
+                  </a>
+                </>
+              ) : (
+                <p style={{ fontSize: 13, color: 'var(--fg-2)' }}>Esta cotización aún no tiene firma registrada.</p>
+              )}
+            </div>
           </div>
         </div>
       )}
