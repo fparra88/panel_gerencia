@@ -153,6 +153,7 @@ async function generarPDFCotizacion({ codigo, clienteObj, clienteNombre, items, 
 // ---------- Cotizaciones ----------
 const N8N_COTI_HOOK  = "https://n8n-n8n.i4mjht.easypanel.host/webhook/0c67219b-97b4-4cb3-9e7d-6fe4ece90a6d";
 const N8N_FIRMA_HOOK = "https://n8n-n8n.i4mjht.easypanel.host/webhook/5a5caa1a-3ad5-44ff-9f47-d791f937f2d0";
+const N8N_OPS_HOOK   = "https://n8n-n8n.i4mjht.easypanel.host/webhook/678bae31-bb49-478e-93a2-cad2888a298a";
 
 const COT_COMENTARIOS = [
   'ENVIO GRATIS EN COMPRAS MAYORES A $7000.00 MAS IVA, TIEMPO DE ENTREGA DE 4-7 DIAS HABILES.',
@@ -586,7 +587,7 @@ function PageCotizaciones({ user }) {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div className="field">
                       <label className="field-label">Cantidad</label>
-                      <input className="input" type="number" min="1" value={cantidad} onChange={e => setCantidad(Math.max(1, Number(e.target.value) || 1))}/>
+                      <input className="input" type="number" min="1" value={cantidad} onChange={e => setCantidad(e.target.value === '' ? '' : Math.max(1, Number(e.target.value) || 1))} onBlur={() => setCantidad(v => (v === '' || Number(v) < 1) ? 1 : Number(v))}/>
                     </div>
                     <div className="field">
                       <label className="field-label">Precio unitario</label>
@@ -1323,6 +1324,7 @@ function PageFull() {
     if (r.ok) {
       toast.success('Traspaso registrado', `${selectedSku} → ${destino}`);
       window.fireConfetti();
+      fetch(N8N_OPS_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
       setCantidad(50);
       await cargarDatos();
     } else {
@@ -1463,6 +1465,7 @@ function PageGastos({ user }) {
     if (r.ok) {
       toast.success('Gasto registrado', p.descripcion);
       window.fireConfetti();
+      fetch(N8N_OPS_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo: 'gasto_operativo', usuario_registro: user || 'usuario', descripcion: p.descripcion, costo: parseFloat(p.costo), cantidad: parseInt(p.cantidad, 10) }) }).catch(() => {});
       setGastoFormS({ descripcion: '', costo: '', cantidad: '' });
       setGastos(await window.api.gastos());
     } else {
@@ -1497,6 +1500,7 @@ function PageGastos({ user }) {
     if (r.ok) {
       toast.success('SKU descontado', `${p.cantidad} × ${p.nombre}`);
       window.fireConfetti();
+      fetch(N8N_OPS_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo: 'gasto_sku', sku: p.sku, nombre: p.nombre, cantidad: p.cantidad, usuario: user || 'usuario' }) }).catch(() => {});
       setCantidadSku(1);
     } else {
       toast.error('Error al registrar', 'Verifica conexión con el servidor');
