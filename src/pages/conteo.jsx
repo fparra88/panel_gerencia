@@ -3,6 +3,7 @@ const { useState: co_uS, useEffect: co_uE, useMemo: co_uM } = React;
 
 function PageConteo({ user }) {
   const toast = window.useToast();
+  const [askConfirm, ConfirmModal] = window.useConfirm();
   const [loading, setLoading] = co_uS(true);
   const [productos, setProductos] = co_uS([]);
   const [q, setQ] = co_uS('');
@@ -66,6 +67,7 @@ function PageConteo({ user }) {
 
   return (
     <div className="page">
+      {ConfirmModal}
       <div className="section-header">
         <div>
           <h2 className="section-title">Conteo de Inventario</h2>
@@ -73,7 +75,7 @@ function PageConteo({ user }) {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span className="badge">{contados} / {productos.length} contados</span>
-          <button className="btn btn-primary btn-sm" onClick={terminarConteo}>
+          <button className="btn btn-primary btn-sm" onClick={() => askConfirm(`¿Finalizar el conteo con ${contados} producto(s) registrados? Pasarás a la pantalla de resultados.`, terminarConteo)}>
             <Icon name="check" size={13}/> Terminar conteo
           </button>
         </div>
@@ -153,6 +155,7 @@ function PageConteo({ user }) {
 
 function ResultadoConteo({ resultados, fecha, onReiniciar, user }) {
   const toast = window.useToast();
+  const [askConfirm, ConfirmModal] = window.useConfirm();
   const [q, setQ] = co_uS('');
   const [filtro, setFiltro] = co_uS('todos');
   const [sending, setSending] = co_uS(false);
@@ -221,6 +224,7 @@ function ResultadoConteo({ resultados, fecha, onReiniciar, user }) {
     if (r.ok) {
       setEnviado(true);
       toast.success('Conteo guardado', `${payload.productos.length} productos registrados`);
+      window.fireConfetti();
     } else {
       toast.error('Error al enviar', r.error || 'Intenta de nuevo');
     }
@@ -228,6 +232,7 @@ function ResultadoConteo({ resultados, fecha, onReiniciar, user }) {
 
   return (
     <div className="page">
+      {ConfirmModal}
       <div className="section-header">
         <div>
           <h2 className="section-title">Resultado del Conteo</h2>
@@ -239,13 +244,13 @@ function ResultadoConteo({ resultados, fecha, onReiniciar, user }) {
           <button className="btn btn-secondary btn-sm" onClick={descargarReporte}>
             <Icon name="download" size={13}/> Descargar CSV
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={onReiniciar}>
+          <button className="btn btn-secondary btn-sm" onClick={() => askConfirm('¿Iniciar un nuevo conteo? Se perderán todos los datos del conteo actual.', onReiniciar)}>
             <Icon name="refresh" size={13}/> Nuevo conteo
           </button>
           <button
             className="btn btn-primary btn-sm"
             disabled={sending || enviado}
-            onClick={handleEnviar}
+            onClick={() => askConfirm(`¿Enviar conteo al sistema? Esto actualizará el stock de ${resultados.filter(r => r.contado !== null).length} producto(s). Esta acción no se puede deshacer.`, handleEnviar)}
           >
             {sending
               ? <span className="spinner"/>

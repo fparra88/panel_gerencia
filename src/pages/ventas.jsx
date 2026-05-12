@@ -89,6 +89,7 @@ function printTicket({ id_venta, fecha, cartItems, subtotal, descMonto, descuent
 
 function PageVentas({ user }) {
   const toast = window.useToast();
+  const [askConfirm, ConfirmModal] = window.useConfirm();
   const [productos, setProductos] = vt_uS([]);
   const [clientes, setClientes] = vt_uS([]);
   const [cotizaciones, setCotizaciones] = vt_uS([]);
@@ -202,8 +203,15 @@ function PageVentas({ user }) {
     setSubmitting(false);
     if (allOk) {
       toast.success(`Venta ${id_venta} registrada`, `${cart.length} artículos · ${window.fmt.mxn(total)}`);
+      window.fireConfetti();
+      fetch('https://n8n-n8n.i4mjht.easypanel.host/webhook/5a5caa1a-3ad5-44ff-9f47-d791f937f2d0', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ticketData),
+      }).catch(() => {});
     } else {
       toast.warn(`Venta ${id_venta} (parcial/sin conexión)`, `Modo demo · ${window.fmt.mxn(total)}`);
+      window.fireConfetti();
     }
     setLastTicket(ticketData);
     printTicket(ticketData);
@@ -214,6 +222,7 @@ function PageVentas({ user }) {
 
   return (
     <div className="page">
+      {ConfirmModal}
       <div className="section-header">
         <div>
           <h2 className="section-title">Registrar venta</h2>
@@ -353,7 +362,7 @@ function PageVentas({ user }) {
               <h3 className="card-title">Carrito</h3>
               <p className="card-subtitle">{cart.length} producto{cart.length !== 1 ? 's' : ''}</p>
             </div>
-            {cart.length > 0 && <button className="btn btn-ghost btn-sm" onClick={clearCart}><Icon name="trash" size={12}/> Vaciar</button>}
+            {cart.length > 0 && <button className="btn btn-ghost btn-sm" onClick={() => askConfirm('¿Vaciar el carrito? Se eliminarán todos los productos agregados.', clearCart)}><Icon name="trash" size={12}/> Vaciar</button>}
           </div>
 
           <div className="cart-body">
@@ -438,7 +447,7 @@ function PageVentas({ user }) {
                 <Icon name="doc" size={13}/> Reimprimir
               </button>
             )}
-            <button className="btn btn-primary btn-sm" disabled={!puedeProcesar || submitting} onClick={procesar}>
+            <button className="btn btn-primary btn-sm" disabled={!puedeProcesar || submitting} onClick={() => askConfirm(`¿Confirmar venta de ${cart.length} producto(s) por ${window.fmt.mxn(total)}? Esta acción no se puede deshacer.`, procesar)}>
               {submitting
                 ? <><span className="spinner"/> Enviando...</>
                 : <><Icon name="check" size={13}/> Realizar venta{cart.length > 0 ? ` · ${window.fmt.mxn(total)}` : ''}</>}

@@ -164,6 +164,7 @@ const COT_COMENTARIOS = [
 function CotFirmaCanvas({ onSave, onCancel, saving }) {
   const canvasRef = rp_uR(null);
   const drawing = rp_uR(false);
+  const [confirmSave, setConfirmSave] = rp_uS(false);
 
   const getPos = (e, canvas) => {
     const rect = canvas.getBoundingClientRect();
@@ -226,12 +227,26 @@ function CotFirmaCanvas({ onSave, onCancel, saving }) {
         onTouchMove={draw}
         onTouchEnd={stopDraw}
       />
+      {confirmSave && (
+        <div style={{ fontSize: 12, color: 'var(--warn)', padding: '8px 12px', background: 'var(--warn-bg)', borderRadius: 'var(--r-md)', border: '1px solid var(--warn)' }}>
+          ¿Confirmar guardar esta firma digital? Esta acción no se puede deshacer.
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button className="btn btn-ghost btn-sm" onClick={clearCanvas}>Limpiar</button>
-        <button className="btn btn-secondary btn-sm" onClick={onCancel}>Cancelar</button>
-        <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
-          {saving ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Guardar firma</>}
-        </button>
+        <button className="btn btn-ghost btn-sm" onClick={() => { clearCanvas(); setConfirmSave(false); }}>Limpiar</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => { setConfirmSave(false); onCancel(); }}>Cancelar</button>
+        {confirmSave ? (
+          <>
+            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmSave(false)}>No</button>
+            <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
+              {saving ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Sí, guardar</>}
+            </button>
+          </>
+        ) : (
+          <button className="btn btn-primary btn-sm" disabled={saving} onClick={() => setConfirmSave(true)}>
+            <Icon name="check" size={13}/> Guardar firma
+          </button>
+        )}
       </div>
     </div>
   );
@@ -239,6 +254,7 @@ function CotFirmaCanvas({ onSave, onCancel, saving }) {
 
 function PageCotizaciones({ user }) {
   const toast = window.useToast();
+  const [askConfirm, ConfirmModal] = window.useConfirm();
   const [cots, setCots] = rp_uS([]);
   const [q, setQ] = rp_uS('');
   const [estado, setEstado] = rp_uS('todos');
@@ -407,6 +423,7 @@ function PageCotizaciones({ user }) {
     setSubmitting(false);
     if (r.ok) {
       toast.success('Cotización guardada', `${nuevoCodigo} · ${selectedCliente}`);
+      window.fireConfetti();
       // Auto-download PDF
       if (pdfBase64) {
         const a = document.createElement('a');
@@ -435,6 +452,7 @@ function PageCotizaciones({ user }) {
     setSavingFirma(false);
     if (r.ok) {
       toast.success('Firma guardada', firmaModal.codigo);
+      window.fireConfetti();
       fetch(N8N_FIRMA_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
       setCots(prev => prev.map(c => c.codigo_cotizacion === firmaModal.codigo ? { ...c, firma_envio: firma_base64 } : c));
       setFirmaModal(null);
@@ -458,6 +476,7 @@ function PageCotizaciones({ user }) {
     setSavingRelacion(false);
     if (r.ok) {
       toast.success('Relaciones guardadas', `${records.length} cotización(es) actualizadas`);
+      window.fireConfetti();
       fetch(N8N_COTI_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(records) }).catch(() => {});
       setCots(await window.api.cotizaciones());
     } else {
@@ -496,6 +515,7 @@ function PageCotizaciones({ user }) {
 
   return (
     <div className="page">
+      {ConfirmModal}
       <div className="section-header">
         <div>
           <h2 className="section-title">Cotizaciones</h2>
@@ -666,7 +686,7 @@ function PageCotizaciones({ user }) {
 
           <div className="card-footer">
             <button className="btn btn-secondary btn-sm" onClick={resetForm}>Cancelar</button>
-            <button className="btn btn-primary btn-sm" disabled={!selectedCliente || items.length === 0 || submitting} onClick={guardar}>
+            <button className="btn btn-primary btn-sm" disabled={!selectedCliente || items.length === 0 || submitting} onClick={() => askConfirm(`¿Guardar cotización ${nuevoCodigo} para ${selectedCliente} por ${window.fmt.mxn(totalFinal)}?`, guardar)}>
               {submitting
                 ? <><span className="spinner"/> Guardando...</>
                 : <><Icon name="check" size={13}/> Guardar cotización{nuevoCodigo ? ` · ${nuevoCodigo}` : ''}</>}
@@ -742,7 +762,7 @@ function PageCotizaciones({ user }) {
             </table>
           </div>
           <div className="card-footer">
-            <button className="btn btn-primary btn-sm" disabled={savingRelacion} onClick={guardarRelaciones}>
+            <button className="btn btn-primary btn-sm" disabled={savingRelacion} onClick={() => askConfirm('¿Guardar las relaciones de facturas seleccionadas?', guardarRelaciones)}>
               {savingRelacion ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Guardar relaciones</>}
             </button>
           </div>
@@ -864,6 +884,7 @@ const CLIENTE_BLANK = { nombre: '', empresa: '', contacto: '', email: '', telefo
 
 function PageClientes() {
   const toast = window.useToast();
+  const [askConfirm, ConfirmModal] = window.useConfirm();
   const [cli, setCli] = rp_uS([]);
   const [q, setQ] = rp_uS('');
   const [showForm, setShowForm] = rp_uS(false);
@@ -902,6 +923,7 @@ function PageClientes() {
     setSaving(false);
     if (r.ok) {
       toast.success('Cliente actualizado', form.nombre);
+      window.fireConfetti();
       setCli(await window.api.clientes());
       setForm(CLIENTE_BLANK);
       setEditingCliente(null);
@@ -933,6 +955,7 @@ function PageClientes() {
     setSaving(false);
     if (r.ok) {
       toast.success('Cliente creado', form.nombre);
+      window.fireConfetti();
       setCli(await window.api.clientes());
       setForm(CLIENTE_BLANK);
       setShowForm(false);
@@ -946,6 +969,7 @@ function PageClientes() {
   return (
     <div className="page">
       <div className="section-header">
+      {ConfirmModal}
         <div><h2 className="section-title">Clientes</h2><p className="section-subtitle">Directorio completo con línea de crédito y saldos.</p></div>
         <button className={`btn btn-sm ${showForm ? 'btn-secondary' : 'btn-primary'}`} onClick={() => { setShowForm(v => !v); setForm(CLIENTE_BLANK); }}>
           <Icon name="plus" size={13}/> {showForm ? 'Cerrar' : 'Nuevo cliente'}
@@ -993,7 +1017,7 @@ function PageClientes() {
           </div>
           <div className="card-footer">
             <button className="btn btn-secondary btn-sm" onClick={() => { setShowForm(false); setForm(CLIENTE_BLANK); }}>Cancelar</button>
-            <button className="btn btn-primary btn-sm" disabled={!form.nombre.trim() || saving} onClick={guardar}>
+            <button className="btn btn-primary btn-sm" disabled={!form.nombre.trim() || saving} onClick={() => askConfirm(`¿Crear al cliente "${form.nombre}"?`, guardar)}>
               {saving ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Guardar cliente</>}
             </button>
           </div>
@@ -1041,7 +1065,7 @@ function PageClientes() {
           </div>
           <div className="card-footer">
             <button className="btn btn-secondary btn-sm" onClick={() => { setEditingCliente(null); setForm(CLIENTE_BLANK); }}>Cancelar</button>
-            <button className="btn btn-primary btn-sm" disabled={!form.nombre.trim() || saving} onClick={actualizar}>
+            <button className="btn btn-primary btn-sm" disabled={!form.nombre.trim() || saving} onClick={() => askConfirm(`¿Actualizar los datos de "${form.nombre}"?`, actualizar)}>
               {saving ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Actualizar cliente</>}
             </button>
           </div>
@@ -1261,6 +1285,7 @@ function PageReportes() {
 // ---------- Traspaso FULL ----------
 function PageFull() {
   const toast = window.useToast();
+  const [askConfirm, ConfirmModal] = window.useConfirm();
   const [productos, setProductos] = rp_uS([]);
   const [traspasos, setTraspasos] = rp_uS([]);
   const [submitting, setSubmitting] = rp_uS(false);
@@ -1297,6 +1322,7 @@ function PageFull() {
     setSubmitting(false);
     if (r.ok) {
       toast.success('Traspaso registrado', `${selectedSku} → ${destino}`);
+      window.fireConfetti();
       setCantidad(50);
       await cargarDatos();
     } else {
@@ -1307,6 +1333,7 @@ function PageFull() {
   return (
     <div className="page">
       <div className="section-header">
+      {ConfirmModal}
         <div><h2 className="section-title">Traspaso FULL</h2><p className="section-subtitle">Transferencias a bodegas de Amazon FBA y Mercado Libre FULL.</p></div>
       </div>
       <div className="dash-grid">
@@ -1342,7 +1369,7 @@ function PageFull() {
             </div>
             <button className="btn btn-primary btn-sm" style={{ marginTop: 4 }}
               disabled={submitting || !selectedSku}
-              onClick={registrar}>
+              onClick={() => askConfirm(`¿Registrar traspaso de ${cantidad} uds. de ${selectedSku} hacia ${destino}?`, registrar)}>
               {submitting
                 ? <><span className="spinner"/> Registrando...</>
                 : <><Icon name="send" size={13}/> Registrar traspaso</>}
@@ -1435,6 +1462,7 @@ function PageGastos({ user }) {
     setGastoPendiente(null);
     if (r.ok) {
       toast.success('Gasto registrado', p.descripcion);
+      window.fireConfetti();
       setGastoFormS({ descripcion: '', costo: '', cantidad: '' });
       setGastos(await window.api.gastos());
     } else {
@@ -1468,6 +1496,7 @@ function PageGastos({ user }) {
     setSkuPendiente(null);
     if (r.ok) {
       toast.success('SKU descontado', `${p.cantidad} × ${p.nombre}`);
+      window.fireConfetti();
       setCantidadSku(1);
     } else {
       toast.error('Error al registrar', 'Verifica conexión con el servidor');
@@ -1774,7 +1803,7 @@ function FirmaCanvas({ ordenNum, onSend }) {
     const b64 = canvasRef.current.toDataURL('image/png').replace('data:image/png;base64,','');
     const payload = { numero_orden: ordenNum, firma_base64: b64, usuario: window.api.usuario||'sistema', fecha_firma: new Date().toISOString().slice(0,19).replace('T',' '), firma_cleanest: 'Se firmo una orden de cleanest' };
     const r = await window.api.enviarFirma(payload);
-    if (r.ok) { toast.success('Firma enviada', ordenNum); fetch(N8N_HOOK,{method:'POST',body:JSON.stringify(payload),headers:{'Content-Type':'application/json'}}).catch(()=>{}); clear(); onSend?.(); }
+    if (r.ok) { toast.success('Firma enviada', ordenNum); window.fireConfetti(); fetch(N8N_HOOK,{method:'POST',body:JSON.stringify(payload),headers:{'Content-Type':'application/json'}}).catch(()=>{}); clear(); onSend?.(); }
     else toast.error('Error', r.error||'No se pudo enviar');
   };
   return (
@@ -1811,7 +1840,7 @@ function OrdenCard({ pedido, onRefresh }) {
     const finalStatus = total >= +pedido.cantidad ? 'Entregado' : newStatus;
     const r = await window.api.actualizarOrden(pid, { envio1:e1, envio2:e2, envio3:e3, status:finalStatus });
     setSaving(false); setConfirm(false);
-    if (r.ok) { toast.success('Orden actualizada', `${pedido.numero_orden} — ${finalStatus}`); onRefresh(); }
+    if (r.ok) { toast.success('Orden actualizada', `${pedido.numero_orden} — ${finalStatus}`); window.fireConfetti(); onRefresh(); }
     else toast.error('Error', r.error||'No se pudo actualizar');
   };
   return (
@@ -1926,6 +1955,7 @@ function PageCleanest() {
     setLoadingOrden(false);
     if (r.ok) {
       toast.success('Orden registrada', pending.norden);
+      window.fireConfetti();
       fetch(N8N_HOOK,{method:'POST',body:JSON.stringify(payload),headers:{'Content-Type':'application/json'}}).catch(()=>{});
       setPending(null); setNorden('OC'); setSku(''); setCantidad(1); loadData();
     } else { toast.error('Error', r.error||'No se pudo registrar'); setPending(null); }

@@ -3,6 +3,7 @@ const { useState: inv_uS, useEffect: inv_uE, useMemo: inv_uM } = React;
 
 function PageInventario({ user }) {
   const toast = window.useToast();
+  const [askConfirm, ConfirmModal] = window.useConfirm();
   const [loading, setLoading] = inv_uS(true);
   const [productos, setProductos] = inv_uS([]);
   const [q, setQ] = inv_uS('');
@@ -39,6 +40,7 @@ function PageInventario({ user }) {
 
   return (
     <div className="page">
+      {ConfirmModal}
       <div className="section-header">
         <div>
           <h2 className="section-title">Inventario</h2>
@@ -143,7 +145,7 @@ function PageInventario({ user }) {
             </div>
             <div className="card-footer">
               <button className="btn btn-ghost btn-sm" onClick={() => setEditProduct(null)}>Cancelar</button>
-              <button className="btn btn-primary btn-sm" disabled={editSaving} onClick={async () => {
+              <button className="btn btn-primary btn-sm" disabled={editSaving} onClick={() => askConfirm(`¿Guardar cambios en ${editProduct.nombre}?`, async () => {
                 setEditSaving(true);
                 const payload = {
                   sku: editProduct.sku,
@@ -163,11 +165,12 @@ function PageInventario({ user }) {
                 if (r.ok) {
                   setProductos(prev => prev.map(p => p.sku === payload.sku ? { ...p, ...payload } : p));
                   toast.success('Producto actualizado', payload.nombre);
+                  window.fireConfetti();
                   setEditProduct(null);
                 } else {
                   toast.error('Error al guardar', r.error || 'Intenta de nuevo');
                 }
-              }}>{editSaving ? <span className="spinner"/> : 'Guardar cambios'}</button>
+              })}>{editSaving ? <span className="spinner"/> : 'Guardar cambios'}</button>
             </div>
           </div>
         </div>
@@ -194,7 +197,7 @@ function PageInventario({ user }) {
             </div>
             <div className="card-footer">
               <button className="btn btn-ghost btn-sm" onClick={() => setShowNew(false)}>Cancelar</button>
-              <button className="btn btn-primary btn-sm" onClick={() => { toast.success('Producto creado', 'Se agregó al inventario'); setShowNew(false); }}>Crear producto</button>
+              <button className="btn btn-primary btn-sm" onClick={() => askConfirm('¿Crear este nuevo producto en el inventario?', () => { toast.success('Producto creado', 'Se agregó al inventario'); window.fireConfetti(); setShowNew(false); })}>Crear producto</button>
             </div>
           </div>
         </div>
