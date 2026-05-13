@@ -512,7 +512,7 @@ function PageCotizaciones({ user }) {
     return true;
   });
   const abiertas = cots.filter(c => !c.vendido).length;
-  const totalAbiertas = cots.filter(c => !c.vendido).reduce((s, c) => s + c.subtotal, 0);
+  const totalAbiertas = cots.filter(c => !c.vendido).reduce((s, c) => s + (parseFloat(c.subtotal) || 0), 0);
 
   return (
     <div className="page">
@@ -583,6 +583,30 @@ function PageCotizaciones({ user }) {
                         <button key={k} className={`tab ${listaPrecio === k ? 'active' : ''}`} onClick={() => setListaPrecio(k)}>{v}</button>
                       ))}
                     </div>
+                    {(() => {
+                      const c = Number(cantidad) || 0;
+                      const tier = c <= 3 ? 0 : c <= 7 ? 1 : 2;
+                      const tiers = [
+                        { label: '1-3', key: 'PRECIO A' },
+                        { label: '4-7', key: 'PRECIO B' },
+                        { label: '8+',  key: 'PRECIO C' },
+                      ];
+                      return (
+                        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                          {tiers.map((t, i) => (
+                            <span key={i} style={{
+                              fontSize: 11, padding: '2px 7px', borderRadius: 4,
+                              background: i === tier ? 'var(--primary)' : 'var(--bg-2)',
+                              color: i === tier ? '#fff' : 'var(--text-muted)',
+                              fontWeight: i === tier ? 700 : 400,
+                              border: i === tier ? '1.5px solid var(--primary)' : '1.5px solid transparent',
+                            }}>
+                              {i === tier ? '→ ' : ''}{t.label} MASTER: {t.key}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div className="field">
@@ -1896,6 +1920,20 @@ function HistorialCard({ pedido, inv }) {
         const item = inv.find(p=>p.sku===pedido.sku)||{};
         const payload = { id_venta:nordenShort, sku:pedido.sku, stock_bodega:+pedido.cantidad, precio:parseFloat(item.precio_clean||0), producto:item.nombre||pedido.sku, fecha:new Date().toISOString().slice(0,19).replace('T',' '), nombreComprador:'CLEANEST CHOICE', otros:'FARMACEUTICA', plataforma:'SISTEMA ZEUTICA', usuario:window.api.usuario||'sistema', condicion_pago: "CREDITO" };
         const rv = await window.api.registrarVenta(payload);
+        const cleanestPayload = {
+          id_venta: parseInt(nordenShort.replace(/\D/g, ''), 10),
+          sku: pedido.sku,
+          producto: item.nombre || pedido.sku,
+          stock_clean: +pedido.cantidad,
+          precio: parseFloat(item.precio_clean || 0),
+          fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
+          nombreComprador: 'CLEANEST CHOICE',
+          otros: 'FARMACEUTICA',
+          plataforma: 'SISTEMA ZEUTICA',
+          usuario: window.api.usuario || 'sistema',
+          condicion_pago: 'CREDITO'
+        };
+        await window.api.registrarVentaCleanest(cleanestPayload);
         if (rv.ok) toast.success('Venta registrada', `Orden ${nordenShort}`);
       }
     })();

@@ -81,14 +81,14 @@ function PageInventario({ user }) {
           <table className="table">
             <thead><tr>
               <th>SKU</th><th>Producto</th><th>Categoría</th><th>Ubicación</th>
-              <th className="td-right">Stock</th><th className="td-right">Mínimo</th>
+              <th className="td-right">Stock</th><th className="td-right">Stock Full</th><th className="td-right">Stock FBA</th><th className="td-right">Stock Clean</th><th className="td-right">Mínimo</th>
               <th className="td-right">Costo</th><th className="td-right">Precio</th><th></th>
             </tr></thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} style={{ textAlign: 'center', padding: 40 }}><span className="spinner"/></td></tr>
+                <tr><td colSpan={12} style={{ textAlign: 'center', padding: 40 }}><span className="spinner"/></td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} className="empty">Sin resultados</td></tr>
+                <tr><td colSpan={12} className="empty">Sin resultados</td></tr>
               ) : filtered.map(p => {
                 const ratio = p.stock_bodega / p.stock_minimo;
                 const tone = ratio < 0.3 ? 'danger' : ratio < 1 ? 'warn' : 'success';
@@ -99,6 +99,9 @@ function PageInventario({ user }) {
                     <td><span className="badge">{p.categoria}</span></td>
                     <td className="td-muted mono" style={{ fontSize: 12 }}>{p.ubicacion}</td>
                     <td className="td-right mono"><span className={`badge badge-${tone}`}><span className="badge-dot"/>{p.stock_bodega}</span></td>
+                    <td className="td-right td-muted mono">{p.stock_full ?? '—'}</td>
+                    <td className="td-right td-muted mono">{p.stock_fba ?? '—'}</td>
+                    <td className="td-right td-muted mono">{p.stock_clean ?? '—'}</td>
                     <td className="td-right td-muted mono">{p.stock_minimo}</td>
                     <td className="td-right mono">{window.fmt.mxn(p.costo_total)}</td>
                     <td className="td-right mono" style={{ fontWeight: 500 }}>{window.fmt.mxn(p.precio)}</td>
