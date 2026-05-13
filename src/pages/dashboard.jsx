@@ -1,18 +1,55 @@
 // ===== Zeutica — Dashboard Pagina =====
 const { useState: ds_uS, useEffect: ds_uE, useMemo: ds_uM } = React;
 
+function exportarDashboardCSV(ventas, periodo) {
+  const headers = ['Fecha','Producto','Comprador','Plataforma','Cantidad','Precio Unit.','Total','Utilidad'];
+  const rows = ventas.map(v => [
+    v.fecha, v.producto, v.nombreComprador ?? '', v.plataforma ?? '',
+    v.cantidad ?? 0, v.precio ?? 0,
+    ((v.cantidad || 0) * (v.precio || 0)).toFixed(2),
+    (v.utilidad_total ?? ((v.cantidad || 0) * (v.precio || 0) * 0.28)).toFixed(2)
+  ]);
+  const csv = [headers, ...rows]
+    .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ventas_${periodo}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function getDateRange(periodo) {
+  const today = new Date();
+  const f2 = today.toISOString().slice(0, 10);
+  let f1;
+  if (periodo === 'hoy') {
+    f1 = f2;
+  } else if (periodo === '7d') {
+    const d = new Date(today);
+    d.setDate(d.getDate() - 6);
+    f1 = d.toISOString().slice(0, 10);
+  } else if (periodo === 'año') {
+    f1 = new Date(today.getFullYear(), 0, 1).toISOString().slice(0, 10);
+  } else {
+    f1 = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+  }
+  return { f1, f2 };
+}
+
 function PageDashboard({ user }) {
   const { Sparkline, BarChart, HBarChart, Donut, LineChart } = window.Charts;
   const [loading, setLoading] = ds_uS(true);
   const [ventas, setVentas] = ds_uS([]);
   const [productos, setProductos] = ds_uS([]);
+  const [periodo, setPeriodo] = ds_uS('mes');
 
   ds_uE(() => {
     (async () => {
       setLoading(true);
-      const today = new Date();
-      const f1 = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
-      const f2 = today.toISOString().slice(0,10);
+      const { f1, f2 } = getDateRange(periodo);
       const [v, p] = await Promise.all([
         window.api.ventasMes(f1, f2),
         window.api.productos(),
@@ -21,7 +58,7 @@ function PageDashboard({ user }) {
       setProductos(Array.isArray(p) ? p : []);
       setLoading(false);
     })();
-  }, []);
+  }, [periodo]);
 
   const metrics = ds_uM(() => {
     const totalUnidades = ventas.reduce((s, v) => s + (v.cantidad || 0), 0);
@@ -71,19 +108,19 @@ function PageDashboard({ user }) {
     <div className="page">
       <div className="section-header">
         <div>
-          <h2 className="section-title">Panorama del mes</h2>
+          <h2 className="section-title">Panorama{periodo === 'hoy' ? ' de hoy' : periodo === '7d' ? ' — últimos 7 días' : periodo === 'año' ? ` — ${new Date().getFullYear()}` : ' del mes'}</h2>
           <p className="section-subtitle">
             Resumen de ventas, cobranza e inventario — {new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <div className="tabs">
-            <button className="tab">Hoy</button>
-            <button className="tab">7d</button>
-            <button className="tab active">Mes</button>
-            <button className="tab">Año</button>
+            <button className={`tab ${periodo === 'hoy' ? 'active' : ''}`} onClick={() => setPeriodo('hoy')}>Hoy</button>
+            <button className={`tab ${periodo === '7d' ? 'active' : ''}`} onClick={() => setPeriodo('7d')}>7d</button>
+            <button className={`tab ${periodo === 'mes' ? 'active' : ''}`} onClick={() => setPeriodo('mes')}>Mes</button>
+            <button className={`tab ${periodo === 'año' ? 'active' : ''}`} onClick={() => setPeriodo('año')}>Año</button>
           </div>
-          <button className="btn btn-secondary btn-sm"><Icon name="download" size={13}/> Exportar</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => exportarDashboardCSV(ventas, periodo)}><Icon name="download" size={13}/> Exportar</button>
         </div>
       </div>
 

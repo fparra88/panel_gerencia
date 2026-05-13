@@ -1916,26 +1916,25 @@ function HistorialCard({ pedido, inv }) {
   rp_uE(() => {
     (async () => {
       const r = await window.api.verificarVenta(nordenShort);
-      if (r.ok && !r.data?.registrada) {
-        const item = inv.find(p=>p.sku===pedido.sku)||{};
-        const payload = { id_venta:nordenShort, sku:pedido.sku, stock_bodega:+pedido.cantidad, precio:parseFloat(item.precio_clean||0), producto:item.nombre||pedido.sku, fecha:new Date().toISOString().slice(0,19).replace('T',' '), nombreComprador:'CLEANEST CHOICE', otros:'FARMACEUTICA', plataforma:'SISTEMA ZEUTICA', usuario:window.api.usuario||'sistema', condicion_pago: "CREDITO" };
-        const rv = await window.api.registrarVenta(payload);
-        const cleanestPayload = {
-          id_venta: parseInt(nordenShort.replace(/\D/g, ''), 10),
-          sku: pedido.sku,
-          producto: item.nombre || pedido.sku,
-          stock_clean: +pedido.cantidad,
-          precio: parseFloat(item.precio_clean || 0),
-          fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
-          nombreComprador: 'CLEANEST CHOICE',
-          otros: 'FARMACEUTICA',
-          plataforma: 'SISTEMA ZEUTICA',
-          usuario: window.api.usuario || 'sistema',
-          condicion_pago: 'CREDITO'
-        };
-        await window.api.registrarVentaCleanest(cleanestPayload);
-        if (rv.ok) toast.success('Venta registrada', `Orden ${nordenShort}`);
-      }
+      // 404 = no existe en DB → registrar; 200 = ya existe → skip; cualquier otro error → no intentar
+      if (r.status !== 404) return;
+      const item = inv.find(p => p.sku === pedido.sku) || {};
+      const cleanestPayload = {
+        id_venta: nordenShort,
+        sku: pedido.sku,
+        producto: item.nombre || pedido.sku,
+        stock_clean: +pedido.cantidad,
+        precio: parseFloat(item.precio_clean || 0),
+        fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        nombreComprador: 'CLEANEST CHOICE',
+        otros: 'FARMACEUTICA',
+        plataforma: 'SISTEMA ZEUTICA',
+        usuario: window.api.usuario || 'sistema',
+        condicion_pago: 'CREDITO',
+      };
+      const rc = await window.api.registrarVentaCleanest(cleanestPayload);
+      if (rc.ok) { toast.success('Venta registrada', `Orden ${nordenShort}`); window.fireConfetti(); }
+      else toast.error('Error al registrar venta', rc.error || 'Intenta de nuevo');
     })();
   }, []);
   return (

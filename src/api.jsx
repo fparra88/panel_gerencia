@@ -116,8 +116,12 @@ async function tryFetch(path, options = {}) {
       headers: { 'Content-Type': 'application/json', ...authHeader, ...(options.headers || {}) },
     });
     clearTimeout(t);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return { ok: true, data: await res.json(), live: true };
+    if (!res.ok) {
+      let body = '';
+      try { body = await res.text(); } catch {}
+      return { ok: false, status: res.status, error: `HTTP ${res.status}${body ? ' — ' + body : ''}`, live: false };
+    }
+    return { ok: true, status: res.status, data: await res.json(), live: true };
   } catch (err) {
     clearTimeout(t);
     return { ok: false, error: err.message, live: false };
@@ -240,8 +244,8 @@ const api = {
   async registrarVenta(payload) {
     return tryFetch('/zeutica/producto/venta', { method: 'POST', body: JSON.stringify(payload) });
   },
-  async registrarVentaCleanest(payload) {
-    return tryFetch('/zeutica/cleanest/venta', { method: 'POST', body: JSON.stringify(payload) });
+  async registrarVentaCleanest(cleanestPayload) {
+    return tryFetch('/zeutica/cleanest/venta', { method: 'POST', body: JSON.stringify(cleanestPayload) }); 
   },
   async registrarGastoSku(payload) {
     return tryFetch('/zeutica/producto/venta', { method: 'POST', body: JSON.stringify(payload) });

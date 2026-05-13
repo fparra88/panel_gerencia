@@ -1,6 +1,25 @@
 // ===== Zeutica — Inventario =====
 const { useState: inv_uS, useEffect: inv_uE, useMemo: inv_uM } = React;
 
+function exportarInventarioCSV(productos) {
+  const headers = ['SKU','Nombre','Categoría','Ubicación','Stock Bodega','Stock Full','Stock FBA','Stock Clean','Stock Mínimo','Costo Total','Precio A','Precio B','Precio C'];
+  const rows = productos.map(p => [
+    p.sku, p.nombre, p.categoria, p.ubicacion ?? '',
+    p.stock_bodega, p.stock_full ?? '', p.stock_fba ?? '', p.stock_clean ?? '',
+    p.stock_minimo, p.costo_total, p.precio, p.precio_2 ?? '', p.precio_3 ?? ''
+  ]);
+  const csv = [headers, ...rows]
+    .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `inventario_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function PageInventario({ user }) {
   const toast = window.useToast();
   const [askConfirm, ConfirmModal] = window.useConfirm();
@@ -47,7 +66,7 @@ function PageInventario({ user }) {
           <p className="section-subtitle">Gestiona productos, niveles de stock y precios.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary btn-sm"><Icon name="download" size={13}/> Exportar</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => exportarInventarioCSV(filtered)}><Icon name="download" size={13}/> Exportar</button>
           {window.AppShell.GERENCIA_USERS?.includes(user) && <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}><Icon name="plus" size={13}/> Nuevo producto</button>}
         </div>
       </div>
