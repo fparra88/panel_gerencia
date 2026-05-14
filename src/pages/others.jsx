@@ -1112,7 +1112,7 @@ function PageClientes() {
         </div>
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>ID</th><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Ciudad</th><th>Crédito</th><th className="td-right">Saldo</th><th></th></tr></thead>
+            <thead><tr><th>ID</th><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Empresa</th><th>Contacto</th><th>Frecuencia</th><th>Crédito</th><th className="td-right">Monto de Crédito</th><th></th></tr></thead>
             <tbody>
               {filtered.map(c => (
                 <tr key={c.id}>
@@ -1120,9 +1120,11 @@ function PageClientes() {
                   <td style={{ fontWeight: 500 }}>{c.nombre}</td>
                   <td className="td-muted">{c.email}</td>
                   <td className="mono td-muted" style={{ fontSize: 12 }}>{c.telefono}</td>
-                  <td className="td-muted">{c.ciudad}</td>
+                  <td className="td-muted">{c.empresa}</td>
+                  <td className="td-muted">{c.contacto}</td>
+                  <td className="td-muted">{c.frecuencia}</td>
                   <td>{c.credito ? <span className="badge badge-success"><span className="badge-dot"/>Activo</span> : <span className="badge">No</span>}</td>
-                  <td className="td-right mono" style={{ fontWeight: c.saldo > 0 ? 500 : 400, color: c.saldo > 0 ? 'var(--warn)' : 'var(--fg-2)' }}>{window.fmt.mxn(c.saldo)}</td>
+                  <td className="td-right mono" style={{ fontWeight: c.monto_credito > 0 ? 500 : 400, color: c.monto_credito > 0 ? 'var(--warn)' : 'var(--fg-2)' }}>{window.fmt.mxn(c.monto_credito)}</td>
                   <td><button className="btn btn-sm btn-secondary" onClick={() => abrirEditar(c)}><Icon name="edit" size={12}/></button></td>
                 </tr>
               ))}
