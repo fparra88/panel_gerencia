@@ -209,15 +209,14 @@ function PageVentas({ user }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ticketData),
       }).catch(() => {});
+      setLastTicket(ticketData);
+      printTicket(ticketData);
+      clearCart();
+      setCliente(null);
+      setCotCargada(null);
     } else {
-      toast.warn(`Venta ${id_venta} (parcial/sin conexión)`, `Modo demo · ${window.fmt.mxn(total)}`);
-      window.fireConfetti();
+      toast.error(`Error al registrar venta ${id_venta}`, 'No se pudo registrar en el servidor. Revisa la conexión e intenta de nuevo.');
     }
-    setLastTicket(ticketData);
-    printTicket(ticketData);
-    clearCart();
-    setCliente(null);
-    setCotCargada(null);
   };
 
   return (

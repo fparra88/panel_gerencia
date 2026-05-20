@@ -91,7 +91,7 @@ function LoginScreen({ onLogin }) {
       <main className="login-form-wrap">
         <form className="login-form slide-up" onSubmit={handleSubmit}>
           <div className="login-logo" style={{ marginBottom: 8 }}>
-            <img src="imagenes/logo.png" alt="Zeutica" className="login-logo-img" />
+            <img src="imagenes/logo.webp" alt="Zeutica" className="login-logo-img" />
           </div>
           <div className="login-form-head">
             <h2 className="login-form-title">Iniciar sesión</h2>
