@@ -216,6 +216,12 @@ const api = {
   async registrarTraspaso(payload) {
     return tryFetch('/zeutica/traspaso', { method: 'POST', body: JSON.stringify(payload) });
   },
+  async registrarTraspasoClean(payload) {
+    return tryFetch('/zeutica/traspaso/clean', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async registrarTraspasoFba(payload) {
+    return tryFetch('/zeutica/traspaso/fba', { method: 'POST', body: JSON.stringify(payload) });
+  },
   async cotizacionDetalle(codigo) {
     const r = await tryFetch('/zeutica/consulta/cotizacion', {
       method: 'GET',

@@ -1072,7 +1072,7 @@ function PageClientes() {
             <div className="field"><label className="field-label">Teléfono</label>
               <input className="input" type="number" value={form.telefono} onChange={e => set('telefono', e.target.value)} placeholder="3312345678"/></div>
             <div className="field"><label className="field-label">RFC</label>
-              <input className="input" value={form.rfc} onChange={e => set('rfc', e.target.value)} placeholder="XAXX010101000"/></div>
+              <input className="input" value={form.rfc} onChange={e => set('rfc', e.target.value)} value="XAXX010101000"/></div>
             <div className="field"><label className="field-label">CP</label>
               <input className="input" type="number" value={form.cp} onChange={e => set('cp', e.target.value)} placeholder="44100"/></div>
             <div className="field">
@@ -1453,8 +1453,21 @@ function PageFull() {
       movimientos: [{ sku: selectedSku, stock_bodega:cantidad }],
       almacen: destino,
     };
-    const r = await window.api.registrarTraspaso(payload);
-    setSubmitting(false);
+    //const r = await window.api.registrarTraspaso(payload);
+    let r;
+    // ─── VALIDACIÓN DE ENDPOINT POR ALMACÉN ───
+    if (destino === 'Mercado Libre FULL') {
+      // Endpoint para almacenes FULL
+      r = await window.api.registrarTraspaso(payload);
+    } else if(destino === 'Amazon FBA') {
+      // cambia a almacen fba 
+        r = await window.api.registrarTraspasoFba(payload); 
+      }else {
+            // Cambia 'registrarTraspasoNormal' por el nombre real de tu función en window.api
+      r = await window.api.registrarTraspasoClean(payload); 
+    }
+    
+    setSubmitting(false); 
     if (r.ok) {
       toast.success('Traspaso registrado', `${selectedSku} → ${destino}`);
       window.fireConfetti();
@@ -2081,6 +2094,7 @@ function PageCleanest() {
   const fechaRef = rp_uR(null);
   const [pending, setPending] = rp_uS(null);
   const [loadingOrden, setLoadingOrden] = rp_uS(false);
+  const [carritoOrdenes, setCarritoOrdenes] = rp_uS([]);
   const toast = window.useToast();
 
   const loadData = async () => {
@@ -2094,22 +2108,35 @@ function PageCleanest() {
   const activos = pedidos.filter(p=>calcularStatus(p)!=='Entregado');
   const completados = pedidos.filter(p=>calcularStatus(p)==='Entregado');
 
-  const submitOrden = e => {
+  const agregarAlCarrito = e => {
     e.preventDefault();
-    if (!norden||!sku) { toast.error('Campos incompletos','Completa todos los campos'); return; }
-    setPending({ norden, sku, cantidad, fechaPromesa });
+    if (!norden || !sku) { toast.error('Campos incompletos', 'Completa todos los campos'); return; }
+    const prod = inv.find(p => p.sku === sku);
+    setCarritoOrdenes(prev => [...prev, {
+      numero_orden: norden, sku, cantidad: +cantidad,
+      fecha_promesa: fechaPromesa, nombre: prod?.nombre || sku,
+    }]);
+    toast.success('Agregado', norden);
+    setNorden('OC'); setSku(''); setCantidad(1);
   };
-  const confirmarOrden = async () => {
+
+  const confirmarOrdenes = async () => {
     setLoadingOrden(true);
-    const payload = { numero_orden:pending.norden, sku:pending.sku, cantidad:+pending.cantidad, fecha_promesa:pending.fechaPromesa, status:'Pendiente', envio1:0, envio2:0, envio3:0 };
-    const r = await window.api.crearOrden(payload);
+    const payloads = carritoOrdenes.map(item => ({
+      numero_orden: item.numero_orden, sku: item.sku, cantidad: item.cantidad,
+      fecha_promesa: item.fecha_promesa, status: 'Pendiente', envio1: 0, envio2: 0, envio3: 0,
+    }));
+    const r = await window.api.crearOrden(payloads);
     setLoadingOrden(false);
     if (r.ok) {
-      toast.success('Orden registrada', pending.norden);
+      toast.success('Órdenes registradas', `${carritoOrdenes.length} orden(es)`);
       window.fireConfetti();
-      fetch(N8N_HOOK,{method:'POST',body:JSON.stringify(payload),headers:{'Content-Type':'application/json'}}).catch(()=>{});
-      setPending(null); setNorden('OC'); setSku(''); setCantidad(1); loadData();
-    } else { toast.error('Error', r.error||'No se pudo registrar'); setPending(null); }
+      fetch(N8N_HOOK, { method: 'POST', body: JSON.stringify(payloads), headers: { 'Content-Type': 'application/json' } }).catch(() => {});
+      setPending(null); setCarritoOrdenes([]); loadData();
+    } else {
+      toast.error('Error', r.error || 'No se pudo registrar');
+      setPending(null);
+    }
   };
 
   return (
@@ -2125,8 +2152,8 @@ function PageCleanest() {
 
       {tab==='nueva' && (
         <div>
-          <form className="card" style={{ padding:20 }} onSubmit={submitOrden}>
-            <h3 className="card-title" style={{ marginBottom:16 }}>Ingresa los datos de la Orden de Pedido</h3>
+          <form className="card" style={{ padding:20 }} onSubmit={agregarAlCarrito}>
+            <h3 className="card-title" style={{ marginBottom:16 }}>Agregar orden al carrito</h3>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
               <div className="field"><label className="field-label">Número de Orden</label><input className="input" value={norden} onChange={e=>setNorden(e.target.value)} placeholder="OC"/></div>
               <div className="field"><label className="field-label">Cantidad</label><input className="input" type="number" min="1" value={cantidad} onChange={e=>setCantidad(+e.target.value)}/></div>
@@ -2146,14 +2173,47 @@ function PageCleanest() {
                 </div>
               </div>
             </div>
-            <button className="btn btn-primary" style={{ marginTop:16, width:'100%' }} type="submit">Registrar Orden</button>
+            <button className="btn btn-primary" style={{ marginTop:16, width:'100%' }} type="submit">
+              <Icon name="plus" size={13}/> Agregar al carrito
+            </button>
           </form>
+          {carritoOrdenes.length > 0 && (
+            <div className="card" style={{ marginTop:16 }}>
+              <div className="card-header">
+                <h3 className="card-title">Carrito de órdenes ({carritoOrdenes.length})</h3>
+                <button className="btn btn-ghost btn-sm" onClick={() => setCarritoOrdenes([])}>Vaciar</button>
+              </div>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead><tr><th>Orden</th><th>SKU</th><th>Nombre</th><th className="td-right">Cantidad</th><th>Fecha Promesa</th><th></th></tr></thead>
+                  <tbody>
+                    {carritoOrdenes.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="mono" style={{ fontWeight:500 }}>{item.numero_orden}</td>
+                        <td className="mono">{item.sku}</td>
+                        <td>{item.nombre}</td>
+                        <td className="td-right mono">{item.cantidad}</td>
+                        <td className="td-muted">{window.fmt.date(item.fecha_promesa)}</td>
+                        <td><button className="btn btn-ghost btn-sm" onClick={() => setCarritoOrdenes(prev => prev.filter((_, i) => i !== idx))}>✕</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="card-footer">
+                <button className="btn btn-secondary btn-sm" onClick={() => setCarritoOrdenes([])}>Vaciar carrito</button>
+                <button className="btn btn-primary btn-sm" disabled={loadingOrden} onClick={() => setPending(true)}>
+                  <Icon name="check" size={13}/> Registrar {carritoOrdenes.length} orden(es)
+                </button>
+              </div>
+            </div>
+          )}
           {pending && (
             <div style={{ marginTop:16, padding:16, background:'var(--warn-bg)', border:'1px solid var(--warn)', borderRadius:'var(--r-md)' }}>
-              <div style={{ fontSize:13, marginBottom:12 }}>⚠️ ¿Confirmas registrar la orden <strong>{pending.norden}</strong> — SKU <strong>{pending.sku}</strong> × {pending.cantidad} uds.?</div>
+              <div style={{ fontSize:13, marginBottom:12 }}>⚠️ ¿Confirmas registrar <strong>{carritoOrdenes.length} orden(es)</strong>?</div>
               <div style={{ display:'flex', gap:8 }}>
-                <button className="btn btn-primary btn-sm" onClick={confirmarOrden} disabled={loadingOrden}>{loadingOrden?'Registrando...':'Sí, registrar'}</button>
-                <button className="btn btn-ghost btn-sm" onClick={()=>setPending(null)}>Cancelar</button>
+                <button className="btn btn-primary btn-sm" onClick={confirmarOrdenes} disabled={loadingOrden}>{loadingOrden ? 'Registrando...' : 'Sí, registrar'}</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setPending(null)}>Cancelar</button>
               </div>
             </div>
           )}
