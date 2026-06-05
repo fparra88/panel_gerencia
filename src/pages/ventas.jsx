@@ -171,6 +171,7 @@ function PageVentas({ user }) {
     const fecha = new Date().toISOString().slice(0, 10);
     let allOk = true;
     for (const item of cart) {
+      if (item.esFallback) continue;
       const precio = Math.round(item.precio * (1 - descuento / 100) * 100) / 100;
       const payload = {
         id_venta,
@@ -274,7 +275,6 @@ function PageVentas({ user }) {
                           lista: 'Cotización',
                         })));
                       } else {
-                        // Fallback: una entrada con el total de la cotización
                         setCart([{
                           sku: c.codigo_cotizacion,
                           nombre: `${c.empresa} — ${c.items_count ?? '?'} artículos`,
@@ -283,6 +283,7 @@ function PageVentas({ user }) {
                           total: Number(c.subtotal || c.total || 0),
                           stock: Infinity,
                           lista: 'Cotización',
+                          esFallback: true,
                         }]);
                       }
                       // Quitar del listado local (se marca vendida en la API solo al confirmar la venta)

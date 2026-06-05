@@ -9,11 +9,21 @@ async function generarPDFCotizacion({ codigo, clienteObj, clienteNombre, items, 
 
   // -- Logo --
   try {
-    const resp = await fetch('logo.webp');
+    const resp = await fetch('/logo.webp');
     if (resp.ok) {
       const blob = await resp.blob();
-      const b64 = await new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(blob); });
-      doc.addImage(b64, 'WEBP', M, 8, 40, 15);
+      const b64 = await new Promise(res => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width; canvas.height = img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          res(canvas.toDataURL('image/png'));
+          URL.revokeObjectURL(img.src);
+        };
+        img.src = URL.createObjectURL(blob);
+      });
+      doc.addImage(b64, 'PNG', M, 8, 40, 15);
     }
   } catch(_) {}
 
@@ -21,7 +31,7 @@ async function generarPDFCotizacion({ codigo, clienteObj, clienteNombre, items, 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.text([
-    'Domicilio: Reporteros 44, Col. Los Periodistas, CP: 45078, Zapopan, Jalisco.',
+    'Domicilio: Blvd De los Charros 1629 Belenes Norte Cp 45145, Zapopan, Jalisco.',
     'www.zeutica.com',
     'Teléfono: 33-1299-5688',
     'E-mail: ventas1@zeutica.com',
