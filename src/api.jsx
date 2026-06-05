@@ -266,6 +266,12 @@ const api = {
     const r = await tryFetch('/zeutica/cleanest');
     return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
   },
+  async ubicacionesSku(sku) {
+    return tryFetch(`/zeutica/productos/ubicaciones/${encodeURIComponent(sku)}`);
+  },
+  async editarUbicacion(sku, payload) {
+    return tryFetch(`/zeutica/ubicacion/editar/${encodeURIComponent(sku)}`, { method: 'POST', body: JSON.stringify(payload) });
+  },
   async editarProducto(payload) {
     return tryFetch('/zeutica/productos/editados', { method: 'POST', body: JSON.stringify(payload) });
   },

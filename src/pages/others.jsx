@@ -9,11 +9,11 @@ async function generarPDFCotizacion({ codigo, clienteObj, clienteNombre, items, 
 
   // -- Logo --
   try {
-    const resp = await fetch('logo.png');
+    const resp = await fetch('logo.webp');
     if (resp.ok) {
       const blob = await resp.blob();
       const b64 = await new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(blob); });
-      doc.addImage(b64, 'PNG', M, 8, 40, 15);
+      doc.addImage(b64, 'WEBP', M, 8, 40, 15);
     }
   } catch(_) {}
 

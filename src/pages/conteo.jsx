@@ -9,6 +9,7 @@ function PageConteo({ user }) {
   const [q, setQ] = co_uS('');
   const [cat, setCat] = co_uS('Todas');
   const [conteos, setConteos] = co_uS({});
+  const [ubicaciones, setUbicaciones] = co_uS({});
   const [fase, setFase] = co_uS('conteo');
   const [fechaConteo, setFechaConteo] = co_uS(null);
 
@@ -50,6 +51,7 @@ function PageConteo({ user }) {
 
   const reiniciarConteo = () => {
     setConteos({});
+    setUbicaciones({});
     setFase('conteo');
     setFechaConteo(null);
   };
@@ -61,6 +63,7 @@ function PageConteo({ user }) {
         fecha={fechaConteo}
         onReiniciar={reiniciarConteo}
         user={user}
+        ubicaciones={ubicaciones}
       />
     );
   }
@@ -125,7 +128,17 @@ function PageConteo({ user }) {
                     <td className="mono" style={{ fontSize: 12 }}>{p.sku}</td>
                     <td>{p.nombre}</td>
                     <td><span className="badge">{p.categoria}</span></td>
-                    <td className="td-muted mono" style={{ fontSize: 12 }}>{p.ubicacion}</td>
+                    <td>
+                      <input
+                        className="input"
+                        type="text"
+                        placeholder={p.ubicacion || 'Ubicación...'}
+                        value={ubicaciones[p.sku] ?? ''}
+                        aria-label={`Ubicación para ${p.nombre}`}
+                        style={{ width: 110, padding: '4px 8px', height: 30 }}
+                        onChange={e => setUbicaciones(prev => ({ ...prev, [p.sku]: e.target.value }))}
+                      />
+                    </td>
                     <td className="td-right mono">{p.stock_bodega}</td>
                     <td className="td-right">
                       <input
@@ -153,7 +166,7 @@ function PageConteo({ user }) {
   );
 }
 
-function ResultadoConteo({ resultados, fecha, onReiniciar, user }) {
+function ResultadoConteo({ resultados, fecha, onReiniciar, user, ubicaciones = {} }) {
   const toast = window.useToast();
   const [askConfirm, ConfirmModal] = window.useConfirm();
   const [q, setQ] = co_uS('');
@@ -210,24 +223,24 @@ function ResultadoConteo({ resultados, fecha, onReiniciar, user }) {
 
   const handleEnviar = async () => {
     setSending(true);
+    const counted = resultados.filter(r => r.contado !== null);
     const payload = {
       usuario: user,
-      productos: resultados
-        .filter(r => r.contado !== null)
-        .map(r => ({
-          sku: r.sku,
-          conteo: r.contado,
-        })),
+      productos: counted.map(r => ({ sku: r.sku, conteo: r.contado })),
     };
     const r = await window.api.registrarConteo(payload);
-    setSending(false);
     if (r.ok) {
+      const conUbic = counted.filter(r => ubicaciones[r.sku]);
+      await Promise.all(conUbic.map(r =>
+        window.api.editarUbicacion(r.sku, { cantidad: r.contado, warehouse_id: ubicaciones[r.sku] })
+      ));
       setEnviado(true);
       toast.success('Conteo guardado', `${payload.productos.length} productos registrados`);
       window.fireConfetti();
     } else {
       toast.error('Error al enviar', r.error || 'Intenta de nuevo');
     }
+    setSending(false);
   };
 
   return (
@@ -320,7 +333,7 @@ function ResultadoConteo({ resultados, fecha, onReiniciar, user }) {
                     <td className="mono" style={{ fontSize: 12 }}>{r.sku}</td>
                     <td>{r.nombre}</td>
                     <td><span className="badge">{r.categoria}</span></td>
-                    <td className="td-muted mono" style={{ fontSize: 12 }}>{r.ubicacion}</td>
+                    <td className="td-muted mono" style={{ fontSize: 12 }}>{ubicaciones[r.sku] || r.ubicacion}</td>
                     <td className="td-right mono">{r.stock_bodega}</td>
                     <td className="td-right mono">
                       {noContado

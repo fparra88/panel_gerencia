@@ -484,3 +484,20 @@
   color: white;
 }
 .checkbox svg { width: 12px; height: 12px; }
+
+/* Forzar visibilidad del botón de expansión */
+.btn-ghost {
+  opacity: 1 !important; /* Fuerza la visibilidad constante */
+}
+
+/* Estilo del contenedor expandido */
+.expanded-cell {
+  padding: 0 !important;
+  background-color: #1a1d21; /* Asegura un contraste claro con el fondo */
+}
+
+.ubic-panel-wrapper {
+  padding: 20px; /* Aquí le das el "aire" que le falta */
+  border-top: 2px solid #333;
+  box-shadow: inset 0 10px 10px -10px rgba(0,0,0,0.5); /* Sombra interna para dar profundidad */
+}

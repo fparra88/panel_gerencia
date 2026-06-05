@@ -31,6 +31,8 @@ function PageInventario({ user }) {
   const [showNew, setShowNew] = inv_uS(false);
   const [editProduct, setEditProduct] = inv_uS(null);
   const [editSaving, setEditSaving] = inv_uS(false);
+  const [expandedSkus, setExpandedSkus] = inv_uS({});
+  const [ubicCache, setUbicCache] = inv_uS({});
 
   inv_uE(() => { (async () => {
     setLoading(true);
@@ -56,6 +58,17 @@ function PageInventario({ user }) {
     const valor = productos.reduce((s, p) => s + (p.stock_bodega * p.costo_total), 0);
     return { total, bajo, critico, valor };
   }, [productos]);
+
+  function toggleExpand(sku) {
+    setExpandedSkus(prev => ({ ...prev, [sku]: !prev[sku] }));
+    setUbicCache(prev => {
+      if (prev[sku] !== undefined) return prev;
+      window.api.ubicacionesSku(sku).then(r => {
+        setUbicCache(c => ({ ...c, [sku]: { loading: false, data: r.ok ? r.data : null, error: r.ok ? null : (r.error || 'Error al cargar') } }));
+      });
+      return { ...prev, [sku]: { loading: true, data: null, error: null } };
+    });
+  }
 
   return (
     <div className="page">
@@ -99,7 +112,7 @@ function PageInventario({ user }) {
         <div className="table-wrap">
           <table className="table">
             <thead><tr>
-              <th>SKU</th><th>Producto</th><th>Categoría</th><th>Ubicación</th>
+              <th>SKU</th><th>Producto</th><th>Categoría</th>
               <th className="td-right">Stock</th><th className="td-right">Stock Full</th><th className="td-right">Stock FBA</th><th className="td-right">Stock Clean</th><th className="td-right">Stock Total</th><th className="td-right">Mínimo</th>
               <th className="td-right">Costo</th><th className="td-right">Precio</th><th></th>
             </tr></thead>
@@ -111,26 +124,38 @@ function PageInventario({ user }) {
               ) : filtered.map(p => {
                 const ratio = p.stock_bodega / p.stock_minimo;
                 const tone = ratio < 0.3 ? 'danger' : ratio < 1 ? 'warn' : 'success';
+                const isExpanded = !!expandedSkus[p.sku];
                 return (
-                  <tr key={p.sku}>
-                    <td className="mono" style={{ fontSize: 12 }}>{p.sku}</td>
-                    <td>{p.nombre}</td>
-                    <td><span className="badge">{p.categoria}</span></td>
-                    <td className="td-muted mono" style={{ fontSize: 12 }}>{p.ubicacion}</td>
-                    <td className="td-right mono"><span className={`badge badge-${tone}`}><span className="badge-dot"/>{p.stock_bodega}</span></td>
-                    <td className="td-right td-muted mono">{p.stock_full ?? '—'}</td>
-                    <td className="td-right td-muted mono">{p.stock_fba ?? '—'}</td>
-                    <td className="td-right td-muted mono">{p.stock_clean ?? '—'}</td>
-                    <td className="td-right td-muted mono">{p.stock_total ?? '—'}</td>
-                    <td className="td-right td-muted mono">{p.stock_minimo}</td>
-                    <td className="td-right mono">{window.fmt.mxn(p.costo_total)}</td>
-                    <td className="td-right mono" style={{ fontWeight: 500 }}>{window.fmt.mxn(p.precio)}</td>
-                    <td className="td-right">
-                      {window.AppShell.GERENCIA_USERS.includes(user) ? (
-                        <button className="btn btn-ghost btn-sm btn-icon" title="Editar" onClick={() => setEditProduct({ ...p })}><Icon name="edit" size={13}/></button>
-                      ) : null}
-                    </td>
-                  </tr>
+                  <React.Fragment key={p.sku}>
+                    <tr>
+                      <td className="mono" style={{ fontSize: 12 }}>{p.sku}</td>
+                      <td>{p.nombre}</td>
+                      <td><span className="badge">{p.categoria}</span></td>
+                      <td className="td-right mono"><span className={`badge badge-${tone}`}><span className="badge-dot"/>{p.stock_bodega}</span></td>
+                      <td className="td-right td-muted mono">{p.stock_full ?? '—'}</td>
+                      <td className="td-right td-muted mono">{p.stock_fba ?? '—'}</td>
+                      <td className="td-right td-muted mono">{p.stock_clean ?? '—'}</td>
+                      <td className="td-right td-muted mono">{p.stock_total ?? '—'}</td>
+                      <td className="td-right td-muted mono">{p.stock_minimo}</td>
+                      <td className="td-right mono">{window.fmt.mxn(p.costo_total)}</td>
+                      <td className="td-right mono" style={{ fontWeight: 500 }}>{window.fmt.mxn(p.precio)}</td>
+                      <td className="td-right" style={{ whiteSpace: 'nowrap' }}>
+                        <button className="btn btn-ghost btn-sm btn-icon" title="Ver ubicaciones" onClick={() => toggleExpand(p.sku)}>
+                          <Icon name={isExpanded ? 'chevUp' : 'chevDown'} size={13}/>
+                        </button>
+                        {window.AppShell.GERENCIA_USERS.includes(user) && (
+                          <button className="btn btn-ghost btn-sm btn-icon" title="Editar" onClick={() => setEditProduct({ ...p })}><Icon name="edit" size={13}/></button>
+                        )}
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={12} className="expanded-cell">
+                          <UbicPanel cache={ubicCache[p.sku]} sku={p.sku} />
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -225,6 +250,34 @@ function PageInventario({ user }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function UbicPanel({ cache, sku }) {
+  if (!cache || cache.loading) return <div style={{ padding: '12px 16px' }}><span className="spinner"/></div>;
+  if (cache.error) return <div style={{ padding: '12px 16px', color: 'var(--danger)', fontSize: 13 }}>{cache.error}</div>;
+  const d = cache.data;
+  const items = Array.isArray(d) ? d : (d && typeof d === 'object') ? [d] : [];
+  if (items.length === 0) return (
+    <div style={{ padding: '12px 16px', color: 'var(--muted)', fontSize: 13 }}>
+      Sin ubicaciones registradas para <span className="mono">{sku}</span>.
+    </div>
+  );
+  return (
+    <div className="ubic-panel-wrapper" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {items.map((item, i) => (
+        <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+          {Object.entries(item).map(([k, v]) => (
+            <div key={k} style={{ fontSize: 12 }}>
+              <div style={{ color: 'var(--muted)', fontSize: 11, marginBottom: 2 }}>{k}</div>
+              <div className="mono" style={{ fontWeight: 500 }}>
+                {typeof v === 'object' ? JSON.stringify(v) : String(v ?? '—')}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
