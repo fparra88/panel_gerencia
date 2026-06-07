@@ -178,13 +178,16 @@ function App() {
 
   const pages = {
     dashboard:    window.PageDashboard,
+    usuarios:     window.PageUsuarios,
+    articulos:    window.PageArticulos,
     inventario:   window.PageInventario,
+    ubicaciones:  window.PageUbicaciones,
     conteo:       window.PageConteo,
     ventas:       window.PageVentas,
     cotizaciones: window.PageCotizaciones,
     clientes:     window.PageClientes,
     reportes:     window.PageReportes,
-    full:         window.PageFull,
+    full:         window.PageFull,    
     gastos:       window.PageGastos,
     pendientes:   window.PagePendientes,
     cleanest:     window.PageCleanest,
@@ -217,6 +220,7 @@ function App() {
           notifCount={unreadCount}
           onCmd={() => setCmdOpen(true)}
           onMenuToggle={() => setMobileMenuOpen(v => !v)}
+          setCurrent={setCurrent}
         />
         {notifOpen && (
           <NotifPanel notifs={notifs} markAllRead={markAllRead} onClose={() => setNotifOpen(false)}/>

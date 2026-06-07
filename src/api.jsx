@@ -270,7 +270,13 @@ const api = {
     return tryFetch(`/zeutica/productos/ubicaciones/${encodeURIComponent(sku)}`);
   },
   async editarUbicacion(sku, payload) {
-    return tryFetch(`/zeutica/ubicacion/editar/${encodeURIComponent(sku)}`, { method: 'POST', body: JSON.stringify(payload) });
+    return tryFetch(`/zeutica/ubicacion/editar/${encodeURIComponent(sku)}`, { method: 'PUT', body: JSON.stringify(payload) });
+  },
+  async crearUbicacion(sku, payload) {
+    return tryFetch(`/zeutica/productos/ubicacionNueva/${encodeURIComponent(sku)}`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async eliminarUbicacion(id) {
+    return tryFetch(`/zeutica/producto/eliminarUbi/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
   async editarProducto(payload) {
     return tryFetch('/zeutica/productos/editados', { method: 'POST', body: JSON.stringify(payload) });

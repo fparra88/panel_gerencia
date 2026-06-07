@@ -1,0 +1,85 @@
+// ===== Zeutica — Monitor de Cobranza =====
+const { useState: rp_uS, useEffect: rp_uE } = React;
+
+function PageCobranza() {
+  const toast = window.useToast();
+  const [creditos, setCreditos] = rp_uS([]);
+  const [sel, setSel] = rp_uS(null);
+  const [monto, setMonto] = rp_uS(0);
+  rp_uE(() => { (async () => setCreditos(await window.api.creditos()))(); }, []);
+
+  const total = creditos.reduce((s, c) => s + c.saldo_pendiente, 0);
+  const clientes = new Set(creditos.map(c => c.nombre)).size;
+
+  const abonar = () => {
+    if (!sel || monto <= 0) { toast.error('Abono inválido', 'Selecciona una venta y un monto'); return; }
+    toast.success('Abono registrado', `${window.fmt.mxn(monto)} para ${sel.nombre}`);
+    setCreditos(creditos.map(c => c.id_ventas === sel.id_ventas ? { ...c, saldo_pendiente: Math.max(0, c.saldo_pendiente - monto), abonado: c.abonado + monto } : c));
+    setSel(null); setMonto(0);
+  };
+
+  return (
+    <div className="page">
+      <div className="section-header">
+        <div><h2 className="section-title">Monitor de cobranza</h2><p className="section-subtitle">Consulta cartera y registra abonos en tiempo real.</p></div>
+      </div>
+      <div className="dash-kpis">
+        <window.MiniStat label="Clientes con crédito" value={clientes} icon="users"/>
+        <window.MiniStat label="Saldo total" value={window.fmt.mxn(total)} icon="wallet"/>
+        <window.MiniStat label="Promedio" value={window.fmt.mxn(total / (clientes || 1))} icon="trend"/>
+        <window.MiniStat label="Recuperado mes" value={window.fmt.mxn(creditos.reduce((s,c) => s + c.abonado, 0))} icon="check" tone="success"/>
+      </div>
+      <div className="dash-grid" style={{ marginTop: 16 }}>
+        <div className="card">
+          <div className="card-header"><h3 className="card-title">Cartera activa</h3></div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th>Cliente</th><th className="td-right">Saldo</th><th>Días</th><th></th></tr></thead>
+              <tbody>
+                {creditos.filter(c => c.saldo_pendiente > 0).map(c => (
+                  <tr key={c.id_ventas} style={{ background: sel?.id_ventas === c.id_ventas ? 'var(--bg-2)' : undefined }}>
+                    <td><div style={{ fontWeight: 500 }}>{c.nombreComprador || c.nombre}</div><div className="mono td-muted" style={{ fontSize: 11 }}>#{String(c.id_ventas).slice(-6)}</div></td>
+                    <td className="td-right mono" style={{ fontWeight: 600 }}>{window.fmt.mxn(c.saldo_pendiente)}</td>
+                    <td>{(() => {
+                      const dias = c.dias_vencido ?? Math.floor((Date.now() - new Date(c.fecha_vencimiento)) / 86400000);
+                      const label = c.fecha_vencimiento ? window.fmt.date(c.fecha_vencimiento) : `${dias}d`;
+                      return <span className={`badge badge-${dias > 15 ? 'danger' : 'warn'}`}><span className="badge-dot"/>{label}</span>;
+                    })()}</td>
+                    <td className="td-right"><button className="btn btn-ghost btn-sm" onClick={() => { setSel(c); setMonto(c.saldo_pendiente); }}>Abonar</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-header"><h3 className="card-title">Registrar abono</h3></div>
+          <div className="card-body">
+            {!sel ? (
+              <div className="empty"><div className="empty-icon"><Icon name="cash"/></div><div>Selecciona una venta para abonar</div></div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ padding: 12, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', border: '1px solid var(--line)' }}>
+                  <div style={{ fontWeight: 500 }}>{sel.nombre}</div>
+                  <div className="mono td-muted" style={{ fontSize: 11, marginTop: 2 }}>Venta #{String(sel.id_ventas).slice(-8)}</div>
+                  <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--fg-2)', fontSize: 12 }}>Saldo pendiente</span>
+                    <span className="mono" style={{ fontWeight: 600 }}>{window.fmt.mxn(sel.saldo_pendiente)}</span>
+                  </div>
+                </div>
+                <div className="field"><label className="field-label">Monto del abono</label>
+                  <input className="input input-lg mono" type="number" value={monto} onChange={e => setMonto(Number(e.target.value) || 0)}/></div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setSel(null)}>Cancelar</button>
+                  <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={abonar}><Icon name="check" size={13}/> Registrar {window.fmt.mxn(monto)}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.PageCobranza = PageCobranza;

@@ -4,12 +4,13 @@ const { useState: uS, useEffect: uE, useMemo: uM, useCallback: uC, useRef: uR } 
 const NAV = [
   { key: 'dashboard',    label: 'Dashboard',        icon: 'dashboard', gerencia: true },
   { key: 'inventario',   label: 'Inventario',       icon: 'box' },
+  { key: 'ubicaciones',  label: 'Ubicaciones',      icon: 'building', gerencia: true },
   { key: 'conteo',       label: 'Conteo de Inv.',   icon: 'ok' },
   { key: 'ventas',       label: 'Ventas',           icon: 'cash' },
   { key: 'cotizaciones', label: 'Cotizaciones',     icon: 'doc' },
   { key: 'clientes',     label: 'Clientes',         icon: 'users' },
   { key: 'reportes',     label: 'Reportes',         icon: 'chart' },
-  { key: 'full',         label: 'Traspaso FULL',    icon: 'transfer' },
+  { key: 'full',         label: 'Traspaso FULL',    icon: 'transfer' },  
   { key: 'gastos',       label: 'Gastos Operativos',icon: 'wallet' },
   { key: 'pendientes',   label: 'Cuentas Pendientes',icon: 'clock', gerencia: true },
   { key: 'cleanest',     label: 'CleanestChoice',   icon: 'stars' },
@@ -40,11 +41,11 @@ function Sidebar({ current, setCurrent, user, onLogout, live, mobileOpen }) {
           <NavItem key={n.key} item={n} active={current === n.key} onClick={() => setCurrent(n.key)} canSee={canSee(n, user)} onBlock={() => toast.warn('Acceso restringido', 'Solo gerencia puede ver esta sección')}/>
         ))}
         <div className="sidebar-section">Operación</div>
-        {NAV.slice(1, 8).map((n) => (
+        {NAV.slice(1, 9).map((n) => (
           <NavItem key={n.key} item={n} active={current === n.key} onClick={() => setCurrent(n.key)} canSee={canSee(n, user)} onBlock={() => toast.warn('Acceso restringido', 'Solo gerencia puede ver esta sección')}/>
         ))}
         <div className="sidebar-section">Finanzas</div>
-        {NAV.slice(8, 13).map((n) => (
+        {NAV.slice(9, 14).map((n) => (
           <NavItem key={n.key} item={n} active={current === n.key} onClick={() => setCurrent(n.key)} canSee={canSee(n, user)} onBlock={() => toast.warn('Acceso restringido', 'Solo gerencia puede ver esta sección')}/>
         ))}
       </nav>
@@ -85,8 +86,20 @@ function NavItem({ item, active, onClick, canSee, onBlock }) {
   );
 }
 
-function Topbar({ current, user, onOpenNotifs, notifCount, onCmd, onMenuToggle }) {
+function Topbar({ current, user, onOpenNotifs, notifCount, onCmd, onMenuToggle, setCurrent }) {
   const pageLabel = NAV.find(n => n.key === current)?.label || '';
+  const [menuOpen, setMenuOpen] = uS(false);
+  const menuRef = uR(null);
+
+  uE(() => {
+    if (!menuOpen) return;
+    const onDoc = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    setTimeout(() => document.addEventListener('click', onDoc), 0);
+    return () => document.removeEventListener('click', onDoc);
+  }, [menuOpen]);
+
+  const goTo = (key) => { setCurrent(key); setMenuOpen(false); };
+
   return (
     <header className="topbar">
       <div className="topbar-left">
@@ -112,6 +125,32 @@ function Topbar({ current, user, onOpenNotifs, notifCount, onCmd, onMenuToggle }
           <Icon name="bell" size={16}/>
           {notifCount > 0 && <span className="topbar-badge">{notifCount}</span>}
         </button>
+        <div style={{ position: 'relative' }} ref={menuRef}>
+          <button className="btn btn-ghost btn-icon topbar-icon-btn" onClick={() => setMenuOpen(v => !v)} aria-label="Menú admin">
+            <Icon name="menu" size={16}/>
+          </button>
+          {menuOpen && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+              background: 'var(--bg-1)', border: '1px solid var(--border)',
+              borderRadius: 8, padding: '4px 0', minWidth: 160, zIndex: 200,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+            }}>
+              <button
+                onClick={() => goTo('usuarios')}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 13 }}
+              >
+                <Icon name="users" size={14}/> Usuarios
+              </button>
+              <button
+                onClick={() => goTo('articulos')}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 13 }}
+              >
+                <Icon name="box" size={14}/> Artículos
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
