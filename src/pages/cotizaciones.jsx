@@ -9,7 +9,7 @@ async function generarPDFCotizacion({ codigo, clienteObj, clienteNombre, items, 
 
   // -- Logo --
   try {
-    const resp = await fetch('/logo.webp');
+    const resp = await fetch('imagenes/logo.webp');
     if (resp.ok) {
       const blob = await resp.blob();
       const b64 = await new Promise(res => {
@@ -78,15 +78,18 @@ async function generarPDFCotizacion({ codigo, clienteObj, clienteNombre, items, 
 
   // -- Products table header --
   const colW = [30, 80, 20, 30, 30];
-  const heads = ['CÓDIGO / SKU', 'DESCRIPCIÓN', 'CANT', 'PRECIO', 'TOTAL'];
-  doc.setFillColor(240, 240, 240);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+  const heads = ['CÓDIGO / SKU', 'DESCRIPCIÓN', 'CANTIDAD', 'PRECIO UNITARIO', 'TOTAL'];
+  doc.setFillColor(0, 74, 153);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
   let x = M;
+  heads.forEach((h, i) => { doc.rect(x, y, colW[i], 8, 'FD'); x += colW[i]; });
+  doc.setTextColor(255, 255, 255);
+  x = M;
   heads.forEach((h, i) => {
-    doc.rect(x, y, colW[i], 8, 'FD');
     doc.text(h, x + colW[i] / 2, y + 5.5, { align: 'center' });
     x += colW[i];
   });
+  doc.setTextColor(0, 0, 0);
   y += 8;
 
   // -- Rows --

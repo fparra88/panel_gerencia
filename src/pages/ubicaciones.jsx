@@ -75,7 +75,7 @@ function PageUbicaciones() {
   const abrirEditar = (idx) => {
     const ub = ubicaciones[idx];
     setEditIdx(idx);
-    setForm({ warehouse_id: ub.warehouse_id || '', cantidad: ub.cantidad ?? 0 });
+    setForm({ id: ub.id, warehouse_id: ub.warehouse_id || '', cantidad: ub.cantidad ?? 0 });
   };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -83,7 +83,7 @@ function PageUbicaciones() {
   const guardar = async () => {
     if (!selSku) return;
     setSaving(true);
-    const r = await window.api.editarUbicacion(selSku, {
+    const r = await window.api.editarUbicacion(form.id, {
       warehouse_id: form.warehouse_id,
       cantidad: Number(form.cantidad) || 0,
     });

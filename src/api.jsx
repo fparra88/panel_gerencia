@@ -154,7 +154,21 @@ const api = {
       }
       return { ok: false, error: 'Credenciales inválidas' };
     }
-    return { ok: false, error: r.error };
+    let errorMsg = 'Error de autenticación';
+    if (r.error) {
+      const bodyMatch = r.error.match(/HTTP \d+ — ([\s\S]*)/);
+      if (bodyMatch) {
+        try {
+          const parsed = JSON.parse(bodyMatch[1]);
+          errorMsg = parsed.detail || parsed.message || parsed.error || parsed.msg || bodyMatch[1];
+        } catch {
+          errorMsg = bodyMatch[1];
+        }
+      } else {
+        errorMsg = r.error;
+      }
+    }
+    return { ok: false, error: errorMsg };
   },
 
   async serverStatus() {
@@ -298,6 +312,16 @@ const api = {
   },
   async verificarVenta(norden) {
     return tryFetch(`/zeutica/verifica-venta/${encodeURIComponent(norden)}`);
+  },
+  async empleadosUsuarios() {
+    const r = await tryFetch('/zeutica/empleados-usuarios');
+    return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
+  },
+  async editarEmpleadoUsuario(payload) {
+    return tryFetch('/zeutica/empleados-editados', { method: 'PUT', body: JSON.stringify(payload) });
+  },
+  async crearEmpleadoUsuario(payload) {
+    return tryFetch('/zeutica/empleado/nuevo', { method: 'POST', body: JSON.stringify(payload) });
   },
 };
 

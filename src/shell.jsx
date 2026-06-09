@@ -4,7 +4,7 @@ const { useState: uS, useEffect: uE, useMemo: uM, useCallback: uC, useRef: uR } 
 const NAV = [
   { key: 'dashboard',    label: 'Dashboard',        icon: 'dashboard', gerencia: true },
   { key: 'inventario',   label: 'Inventario',       icon: 'box' },
-  { key: 'ubicaciones',  label: 'Ubicaciones',      icon: 'building', gerencia: true },
+  { key: 'ubicaciones',  label: 'Ubicaciones',      icon: 'building' },
   { key: 'conteo',       label: 'Conteo de Inv.',   icon: 'ok' },
   { key: 'ventas',       label: 'Ventas',           icon: 'cash' },
   { key: 'cotizaciones', label: 'Cotizaciones',     icon: 'doc' },
@@ -16,6 +16,7 @@ const NAV = [
   { key: 'cleanest',     label: 'CleanestChoice',   icon: 'stars' },
   { key: 'compras',      label: 'Compras',          icon: 'cart', gerencia: true },
   { key: 'cobranza',     label: 'Monitor Cobranza', icon: 'eye' },
+  { key: 'usuarios',    label: 'Usuarios',         icon: 'users', gerencia: true },
 ];
 
 const GERENCIA_USERS = ['gerencia', 'fparra'];
