@@ -166,12 +166,13 @@ function PageVentas({ user }) {
       return;
     }
     setSubmitting(true);
-    // ID de 10 dígitos compartido por todos los ítems de la misma venta
-    const id_venta = String(Math.floor(Math.random() * 9e9 + 1e9));
+    
+    const id_venta = Math.floor(Math.random() * 9e9 + 1e9);
     const fecha = new Date().toISOString().slice(0, 10);
     let allOk = true;
+    let intentosDeVenta = 0;
+
     for (const item of cart) {
-      if (item.esFallback) continue;
       const precio = Math.round(item.precio * (1 - descuento / 100) * 100) / 100;
       const payload = {
         id_venta,
@@ -186,13 +187,18 @@ function PageVentas({ user }) {
         usuario: user,
         condicion_pago: metPago,
       };
+      
       const r = await window.api.registrarVenta(payload);
-      if (!r.ok) allOk = false;
+      if (!r.ok) {
+        allOk = false;
+      }
+      intentosDeVenta++;
     }
-    // Si la venta provino de una cotización, marcarla como vendida en el backend
-    if (cotCargada) {
+
+    if (cotCargada && intentosDeVenta > 0 && allOk) {
       await window.api.marcarCotizacionVendida(cotCargada);
     }
+
     const ticketData = {
       id_venta, fecha,
       cartItems: [...cart],
@@ -201,8 +207,10 @@ function PageVentas({ user }) {
       usuario: user,
       cotCargada,
     };
+    
     setSubmitting(false);
-    if (allOk) {
+    
+    if (allOk && intentosDeVenta > 0) {
       toast.success(`Venta ${id_venta} registrada`, `${cart.length} artículos · ${window.fmt.mxn(total)}`);
       window.fireConfetti();
       fetch('https://n8n-n8n.i4mjht.easypanel.host/webhook/5a5caa1a-3ad5-44ff-9f47-d791f937f2d0', {
@@ -219,7 +227,6 @@ function PageVentas({ user }) {
       toast.error(`Error al registrar venta ${id_venta}`, 'No se pudo registrar en el servidor. Revisa la conexión e intenta de nuevo.');
     }
   };
-
   return (
     <div className="page">
       {ConfirmModal}
@@ -241,7 +248,7 @@ function PageVentas({ user }) {
           </div>
           <div className="card-body" style={{ padding: 0 }}>
             {(() => {
-              const pendientes = cotizaciones.filter(c => !c.credito && !c.vendido);
+              const pendientes = cotizaciones.filter(c => !c.vendido && String(c.forma_pago || '').toUpperCase() !== 'CREDITO');
               if (pendientes.length === 0) return (
                 <div className="empty" style={{ padding: 32 }}>
                   <div className="empty-icon"><Icon name="doc"/></div>
@@ -254,46 +261,43 @@ function PageVentas({ user }) {
                     <div className="mono" style={{ fontSize: 12, color: 'var(--fg-2)' }}>{c.codigo_cotizacion}</div>
                     <div style={{ fontWeight: 500, marginTop: 2 }}>{c.empresa}</div>
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>{c.items_count} items</div>
+                  <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>{c.items_count ?? c.items?.length ?? '—'} items</div>
                   <div className="mono" style={{ fontWeight: 500 }}>{window.fmt.mxn(c.subtotal)}</div>
                   <button
                     className="btn btn-primary btn-sm"
                     disabled={loadingCot}
                     onClick={async () => {
                       setLoadingCot(true);
-                      // Intentar obtener items del detalle
-                      const detalle = await window.api.cotizacionDetalle(c.codigo_cotizacion);
-                      const items = detalle?.items ?? detalle?.productos ?? null;
+                      // La lista trae `items` casi siempre vacío; el detalle se consulta
+                      // por id numérico (el endpoint no acepta el código ZTC-###).
+                      let items = Array.isArray(c.items) && c.items.length ? c.items : null;
+                      if (!items) {
+                        const detalle = await window.api.cotizacionDetalle(c.id);
+                        if (Array.isArray(detalle) && detalle.length) items = detalle;
+                      }
                       if (items?.length) {
                         setCart(items.map(i => ({
                           sku: i.sku,
-                          nombre: i.nombre || i.descripcion || i.sku,
+                          nombre: i.nombre_producto || i.nombre || i.sku,
                           cantidad: Number(i.cantidad),
                           precio: Number(i.precio_unitario ?? i.precio),
-                          total: Number(i.total ?? (i.cantidad * (i.precio_unitario ?? i.precio))),
+                          total: Number(i.total_linea ?? i.total ?? (i.cantidad * (i.precio_unitario ?? i.precio))),
                           stock: Infinity,
                           lista: 'Cotización',
                         })));
+                        // Quitar del listado local (se marca vendida en la API solo al confirmar la venta)
+                        setCotizaciones(prev => prev.filter(x => x.codigo_cotizacion !== c.codigo_cotizacion));
+                        // Preseleccionar cliente y guardar referencia
+                        if (c.empresa) setCliente(c.empresa);
+                        setCotCargada(c.codigo_cotizacion);
+                        setLoadingCot(false);
+                        setLoadCotMode(false);
+                        toast.success('Cotización cargada', `${c.codigo_cotizacion} · ${c.empresa}`);
                       } else {
-                        setCart([{
-                          sku: c.codigo_cotizacion,
-                          nombre: `${c.empresa} — ${c.items_count ?? '?'} artículos`,
-                          cantidad: 1,
-                          precio: Number(c.subtotal || c.total || 0),
-                          total: Number(c.subtotal || c.total || 0),
-                          stock: Infinity,
-                          lista: 'Cotización',
-                          esFallback: true,
-                        }]);
+                        // Sin items reales no se puede registrar la venta (SKU = cotización daría 404)
+                        setLoadingCot(false);
+                        toast.error('Sin artículos', `${c.codigo_cotizacion} no tiene productos para vender`);
                       }
-                      // Quitar del listado local (se marca vendida en la API solo al confirmar la venta)
-                      setCotizaciones(prev => prev.filter(x => x.codigo_cotizacion !== c.codigo_cotizacion));
-                      // Preseleccionar cliente y guardar referencia
-                      if (c.empresa) setCliente(c.empresa);
-                      setCotCargada(c.codigo_cotizacion);
-                      setLoadingCot(false);
-                      setLoadCotMode(false);
-                      toast.success('Cotización cargada', `${c.codigo_cotizacion} · ${c.empresa}`);
                     }}
                   >
                     <Icon name="check" size={13}/> Cargar al carrito

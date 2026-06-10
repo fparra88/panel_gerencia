@@ -236,8 +236,10 @@ const api = {
   async registrarTraspasoFba(payload) {
     return tryFetch('/zeutica/traspaso/fba', { method: 'POST', body: JSON.stringify(payload) });
   },
-  async cotizacionDetalle(codigo) {
-    const r = await tryFetch('/zeutica/consulta/cotizacion', {
+  // Recibe el id numérico de la cotización (no el código ZTC-###);
+  // devuelve un array de items {sku, nombre_producto, cantidad, precio_unitario, total_linea}.
+  async cotizacionDetalle(id) {
+    const r = await tryFetch(`/zeutica/cotizacion/${encodeURIComponent(id)}`, {
       method: 'GET',
     });
     return r.ok ? r.data : null;
