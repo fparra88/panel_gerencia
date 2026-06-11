@@ -53,6 +53,8 @@ function ClienteFormFields({ form, set }) {
           <div className="field" style={{ margin: 0, flex: 1, maxWidth: 200 }}>
             <label className="field-label">Monto crédito</label>
             <input className="input" type="number" value={form.monto_credito} onChange={e => set('monto_credito', e.target.value)} placeholder="0"/>
+            <label className="field-label">Dias de credito</label>
+            <input className="input" type="number" value={form.dias_credito} onChange={e => set('dias_credito', e.target.value)} placeholder="0"/>
           </div>
         )}
       </div>
@@ -82,7 +84,7 @@ function PageClientes() {
       email: c.email || '', telefono: c.telefono || 0, direccion: c.direccion || '',
       rfc: c.rfc || '', cp: c.cp || 0, regimen: c.regimen || '',
       uso_cfdi: c.uso_cfdi || '', frecuencia: c.frecuencia || '',
-      credito: c.credito || false, monto_credito: c.monto_credito || 0,
+      credito: c.credito || false, monto_credito: c.monto_credito || 0, dias_credito: c.dias_credito || 0,
     });
   };
 
@@ -95,7 +97,7 @@ function PageClientes() {
       direccion: form.direccion, rfc: form.rfc, cp: Number(form.cp) || 0,
       regimen: form.regimen, uso_cfdi: form.uso_cfdi, frecuencia: form.frecuencia,
       usuario: window.api.usuario || '', credito: form.credito,
-      monto_credito: Number(form.monto_credito) || 0, id: editingCliente.id,
+      monto_credito: Number(form.monto_credito) || 0, dias_credito: Number(form.dias_credito) || 0, id: editingCliente.id,
     };
     const r = await window.api.editarCliente(payload);
     setSaving(false);
@@ -128,6 +130,7 @@ function PageClientes() {
       usuario: window.api.usuario || '',
       credito: form.credito,
       monto_credito: Number(form.monto_credito) || 0,
+      dias_credito: Number(form.dias_credito) || 0,
     };
     const r = await window.api.crearCliente(payload);
     setSaving(false);

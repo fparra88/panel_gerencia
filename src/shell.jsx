@@ -17,6 +17,7 @@ const NAV = [
   { key: 'compras',      label: 'Compras',          icon: 'cart', gerencia: true },
   { key: 'cobranza',     label: 'Monitor Cobranza', icon: 'eye' },
   { key: 'usuarios',    label: 'Usuarios',         icon: 'users', gerencia: true },
+  { key: 'contrasena',  label: 'Contraseña',       icon: 'lock' },
 ];
 
 const GERENCIA_USERS = ['gerencia', 'fparra'];
@@ -144,10 +145,10 @@ function Topbar({ current, user, onOpenNotifs, notifCount, onCmd, onMenuToggle, 
                 <Icon name="users" size={14}/> Usuarios
               </button>
               <button
-                onClick={() => goTo('articulos')}
+                onClick={() => goTo('contrasena')}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 13 }}
               >
-                <Icon name="box" size={14}/> Artículos
+                <Icon name="lock" size={14}/> Contraseña
               </button>
             </div>
           )}

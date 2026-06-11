@@ -179,7 +179,7 @@ function App() {
   const pages = {
     dashboard:    window.PageDashboard,
     usuarios:     window.PageUsuarios,
-    articulos:    window.PageArticulos,
+    contrasena:   window.PageContrasena,
     inventario:   window.PageInventario,
     ubicaciones:  window.PageUbicaciones,
     conteo:       window.PageConteo,

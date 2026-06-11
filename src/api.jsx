@@ -325,6 +325,10 @@ const api = {
   async crearEmpleadoUsuario(payload) {
     return tryFetch('/zeutica/empleado/nuevo', { method: 'POST', body: JSON.stringify(payload) });
   },
+  // Endpoint pendiente en backend: ajustar ruta cuando exista
+  async cambiarPassword(usuario, password_nueva) {
+    return tryFetch('/zeutica/cambio-passw', { method: 'PUT', body: JSON.stringify({ usuario, password_nueva }) });
+  },
 };
 
 window.api = api;
