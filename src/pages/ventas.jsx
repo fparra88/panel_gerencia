@@ -243,16 +243,16 @@ function PageVentas({ user }) {
       {loadCotMode && (
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="card-header">
-            <h3 className="card-title">Cotizaciones abiertas (contado)</h3>
+            <h3 className="card-title">Cotizaciones abiertas</h3>
             {loadingCot && <span className="spinner" style={{ marginLeft: 8 }}/>}
           </div>
           <div className="card-body" style={{ padding: 0 }}>
             {(() => {
-              const pendientes = cotizaciones.filter(c => !c.vendido && String(c.forma_pago || '').toUpperCase() !== 'CREDITO');
+              const pendientes = cotizaciones.filter(c => !c.vendido);
               if (pendientes.length === 0) return (
                 <div className="empty" style={{ padding: 32 }}>
                   <div className="empty-icon"><Icon name="doc"/></div>
-                  <div>Sin cotizaciones de contado pendientes</div>
+                  <div>Sin cotizaciones pendientes</div>
                 </div>
               );
               return pendientes.map(c => (

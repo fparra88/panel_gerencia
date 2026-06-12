@@ -577,8 +577,24 @@ function PageCotizaciones({ user }) {
                   <div className="field">
                     <label className="field-label">Producto</label>
                     <select className="select" value={selectedSku} onChange={e => setSelectedSku(e.target.value)}>
-                      {productos.map(p => <option key={p.sku} value={p.sku}>{p.sku} — {p.nombre}</option>)}
+                      {productos.map(p => <option key={p.sku} value={p.sku}>{p.sku} — {p.nombre} · Stock: {window.fmt.int(p.stock_bodega)}</option>)}
                     </select>
+                    {prodObj && (() => {
+                      // Indicador informativo de stock actual (no bloquea la cotización)
+                      const stock = Number(prodObj.stock_bodega) || 0;
+                      const minimo = Number(prodObj.stock_minimo) || 0;
+                      const tone = stock <= 0 ? 'danger' : stock < minimo ? 'warn' : 'success';
+                      return (
+                        <div style={{ marginTop: 6 }}>
+                          <span className={`badge badge-${tone}`}>
+                            <span className="badge-dot"/>Stock bodega: {window.fmt.int(stock)} {prodObj.medida || 'uds.'}
+                          </span>
+                          {stock > 0 && stock < minimo && (
+                            <span style={{ fontSize: 11, color: 'var(--fg-2)', marginLeft: 8 }}>debajo del mínimo ({window.fmt.int(minimo)})</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div>
                     <label className="field-label">Lista de precios</label>

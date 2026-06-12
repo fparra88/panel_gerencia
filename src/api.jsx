@@ -204,6 +204,10 @@ const api = {
     if (!r.ok) return [];
     return Array.isArray(r.data) ? r.data : (r.data.data || []);
   },
+  // Schema backend: { id_ventas: int, saldo_abonado: float }
+  async registrarAbono(payload) {
+    return tryFetch('/zeutica/abonos', { method: 'POST', body: JSON.stringify(payload) });
+  },
   async gastos() {
     const r = await tryFetch('/zeutica/gastos');
     return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];

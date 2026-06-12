@@ -147,29 +147,16 @@ function OrdenCard({ pedido, onRefresh }) {
 function HistorialCard({ pedido, inv }) {
   const toast = window.useToast();
   const norden = pedido.numero_orden;
-  const nordenShort = norden.slice(2);
   const e1=+pedido.envio1||0, e2=+pedido.envio2||0, e3=+pedido.envio3||0;
   rp_uE(() => {
     (async () => {
-      const r = await window.api.verificarVenta(nordenShort);
-      if (r.status !== 404) return;
-      const item = inv.find(p => p.sku === pedido.sku) || {};
-      const cleanestPayload = {
-        id_venta: nordenShort,
-        sku: pedido.sku,
-        producto: item.nombre || pedido.sku,
-        stock_clean: +pedido.cantidad,
-        precio: parseFloat(item.precio_clean || 0),
-        fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        nombreComprador: 'CLEANEST CHOICE',
-        otros: 'FARMACEUTICA',
-        plataforma: 'SISTEMA ZEUTICA',
-        usuario: window.api.usuario || 'sistema',
-        condicion_pago: 'CREDITO',
-      };
-      const rc = await window.api.registrarVentaCleanest(cleanestPayload);
-      if (rc.ok) { toast.success('Venta registrada', `Orden ${nordenShort}`); window.fireConfetti(); }
-      else toast.error('Error al registrar venta', rc.error || 'Intenta de nuevo');
+      // Si la venta ya existe en la DB se ignora; si no existe se registra.
+      // Lógica y guard anti-duplicados en src/cleanest-venta.js (testeable en Node).
+      const r = await window.cleanestVenta.procesarVentaHistorial({
+        pedido, inv, api: window.api, usuario: window.api.usuario,
+      });
+      if (r.accion === 'registrada') { toast.success('Venta registrada', `Orden ${r.norden}`); window.fireConfetti(); }
+      else if (r.accion === 'error') toast.error('Error al registrar venta', r.error || 'Intenta de nuevo');
     })();
   }, []);
   return (

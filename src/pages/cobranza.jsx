@@ -3,16 +3,22 @@ const { useState: rp_uS, useEffect: rp_uE } = React;
 
 function PageCobranza() {
   const toast = window.useToast();
+  const [askConfirm, ConfirmModal] = window.useConfirm();
   const [creditos, setCreditos] = rp_uS([]);
   const [sel, setSel] = rp_uS(null);
   const [monto, setMonto] = rp_uS(0);
+  const [submitting, setSubmitting] = rp_uS(false);
   rp_uE(() => { (async () => setCreditos(await window.api.creditos()))(); }, []);
 
   const total = creditos.reduce((s, c) => s + c.saldo_pendiente, 0);
   const clientes = new Set(creditos.map(c => c.nombre)).size;
 
-  const abonar = () => {
+  const abonar = async () => {
     if (!sel || monto <= 0) { toast.error('Abono inválido', 'Selecciona una venta y un monto'); return; }
+    setSubmitting(true);
+    const r = await window.api.registrarAbono({ id_ventas: Number(sel.id_ventas), saldo_abonado: Number(monto) });
+    setSubmitting(false);
+    if (!r.ok) { toast.error('Error al registrar abono', r.error || 'No se pudo conectar con el servidor'); return; }
     toast.success('Abono registrado', `${window.fmt.mxn(monto)} para ${sel.nombre}`);
     setCreditos(creditos.map(c => c.id_ventas === sel.id_ventas ? { ...c, saldo_pendiente: Math.max(0, c.saldo_pendiente - monto), abonado: c.abonado + monto } : c));
     setSel(null); setMonto(0);
@@ -20,6 +26,7 @@ function PageCobranza() {
 
   return (
     <div className="page">
+      {ConfirmModal}
       <div className="section-header">
         <div><h2 className="section-title">Monitor de cobranza</h2><p className="section-subtitle">Consulta cartera y registra abonos en tiempo real.</p></div>
       </div>
@@ -70,8 +77,10 @@ function PageCobranza() {
                 <div className="field"><label className="field-label">Monto del abono</label>
                   <input className="input input-lg mono" type="number" value={monto} onChange={e => setMonto(Number(e.target.value) || 0)}/></div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn btn-secondary btn-sm" onClick={() => setSel(null)}>Cancelar</button>
-                  <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={abonar}><Icon name="check" size={13}/> Registrar {window.fmt.mxn(monto)}</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setSel(null)} disabled={submitting}>Cancelar</button>
+                  <button className="btn btn-primary btn-sm" style={{ flex: 1 }} disabled={submitting} onClick={() => askConfirm(`¿Registrar abono de ${window.fmt.mxn(monto)} para ${sel.nombre}? Esta acción no se puede deshacer.`, abonar)}>
+                    <Icon name="check" size={13}/> {submitting ? 'Registrando...' : `Registrar ${window.fmt.mxn(monto)}`}
+                  </button>
                 </div>
               </div>
             )}
