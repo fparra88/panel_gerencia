@@ -16,7 +16,7 @@ function PageCobranza() {
   const abonar = async () => {
     if (!sel || monto <= 0) { toast.error('Abono inválido', 'Selecciona una venta y un monto'); return; }
     setSubmitting(true);
-    const r = await window.api.registrarAbono({ id_ventas: Number(sel.id_ventas), saldo_abonado: Number(monto) });
+    const r = await window.api.registrarAbono({ id_ventas: Number(sel.id_ventas), saldo_abonado: Number(monto), usuario: window.api.usuario || '' });
     setSubmitting(false);
     if (!r.ok) { toast.error('Error al registrar abono', r.error || 'No se pudo conectar con el servidor'); return; }
     toast.success('Abono registrado', `${window.fmt.mxn(monto)} para ${sel.nombre}`);

@@ -17,7 +17,7 @@ function LoginScreen({ onLogin }) {
     setLoading(false);
     if (res.ok) {
       toast.success('Bienvenido', res.live ? 'Sesión iniciada en producción' : 'Sesión iniciada (modo demo)');
-      onLogin({ user: res.user, token: res.token, live: res.live });
+      onLogin({ user: res.user, token: res.token, id_usuario: res.id_usuario, live: res.live });
     } else {
       setErr(res.error || 'Error de autenticación');
     }
@@ -82,7 +82,7 @@ function LoginScreen({ onLogin }) {
         <div className="login-brand-bottom">
           <div className="login-status">
             <span className="login-status-dot"/>
-            <span>v2.5 · {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+            <span>v2.6 · {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
           </div>
         </div>
       </aside>

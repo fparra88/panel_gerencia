@@ -139,7 +139,8 @@ const api = {
       api.live = true;
       api.token = r.data.access_token;
       api.usuario = usuario;
-      return { ok: true, token: r.data.access_token, user: usuario, live: true };
+      api.id_usuario = r.data.id_usuario;
+      return { ok: true, token: r.data.access_token, user: usuario, id_usuario: r.data.id_usuario, live: true };
     }
     if (USE_MOCK_LOGIN_FALLBACK) {
       const valid = [
@@ -201,6 +202,11 @@ const api = {
   },
   async creditos() {
     const r = await tryFetch('/zeutica/ventas-credito');
+    if (!r.ok) return [];
+    return Array.isArray(r.data) ? r.data : (r.data.data || []);
+  },
+  async abonosRegistro() {
+    const r = await tryFetch('/zeutica/abonos-registro');
     if (!r.ok) return [];
     return Array.isArray(r.data) ? r.data : (r.data.data || []);
   },
@@ -318,6 +324,16 @@ const api = {
   },
   async verificarVenta(norden) {
     return tryFetch(`/zeutica/verifica-venta/${encodeURIComponent(norden)}`);
+  },
+  // Notificaciones del empleado logueado. id_usuario = int devuelto por /login (auth.id_usuario).
+  async notificaciones(id_usuario) {
+    const r = await tryFetch(`/zeutica/empleados/${encodeURIComponent(id_usuario)}/notificaciones`);
+    if (!r.ok) return [];
+    return Array.isArray(r.data) ? r.data : (r.data.notificaciones || r.data.data || []);
+  },
+  // Marca una notificación como leída. notificacion_id = int.
+  async marcarNotificacionLeida(notificacion_id) {
+    return tryFetch(`/zeutica/notificaciones/marcar-leida/${encodeURIComponent(notificacion_id)}`, { method: 'POST' });
   },
   async empleadosUsuarios() {
     const r = await tryFetch('/zeutica/empleados-usuarios');

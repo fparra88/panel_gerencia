@@ -3,7 +3,15 @@ const { useState: rp_uS, useEffect: rp_uE } = React;
 
 function PagePendientes() {
   const [creditos, setCreditos] = rp_uS([]);
-  rp_uE(() => { (async () => setCreditos(await window.api.creditos()))(); }, []);
+  rp_uE(() => { (async () => {
+    const [cred, abonos] = await Promise.all([window.api.creditos(), window.api.abonosRegistro()]);
+    const byVenta = new Map();
+    for (const a of abonos) byVenta.set(String(a.id_ventas), a);
+    setCreditos(cred.map(c => {
+      const a = byVenta.get(String(c.id_ventas));
+      return { ...c, total: a?.precio ?? c.total, abonado: a?.saldo_abonado ?? c.abonado };
+    }));
+  })(); }, []);
   const total = creditos.reduce((s, c) => s + c.saldo_pendiente, 0);
   const vencidos = creditos.filter(c => c.dias_vencido > 15);
 

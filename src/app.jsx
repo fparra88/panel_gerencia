@@ -3,7 +3,36 @@ const { useState: a_uS, useEffect: a_uE, useCallback: a_uC, useMemo: a_uM, useRe
 
 function useLiveNotifs(user) {
   const [notifs, setNotifs] = a_uS([]);
-  const markAllRead = a_uC(() => setNotifs(ns => ns.map(n => ({ ...n, unread: false }))), []);
+
+  const fetchNotifs = a_uC(async () => {
+    if (!user) { setNotifs([]); return; }
+    const data = await window.api.notificaciones(user);
+    const mapped = (data || []).map((n, i) => ({
+      id: n.id ?? n.notificacion_id ?? i,
+      type: n.type || n.tipo || 'info',
+      icon: n.icon || n.icono || 'bell',
+      title: n.title || n.titulo || n.asunto || 'Notificación',
+      msg: n.msg || n.mensaje || n.descripcion || '',
+      time: n.time || n.fecha || n.created_at || new Date().toISOString(),
+      unread: n.unread ?? (n.leido != null ? !n.leido : true),
+    }));
+    setNotifs(mapped);
+  }, [user]);
+
+  a_uE(() => {
+    fetchNotifs();
+    const id = setInterval(fetchNotifs, 60000);
+    return () => clearInterval(id);
+  }, [fetchNotifs]);
+
+  const markAllRead = a_uC(() => {
+    setNotifs(prev => {
+      const unread = prev.filter(n => n.unread);
+      // POST por cada notificación no leída; id numérico esperado por backend.
+      unread.forEach(n => { window.api.marcarNotificacionLeida(n.id); });
+      return prev.map(n => ({ ...n, unread: false }));
+    });
+  }, []);
   const unreadCount = notifs.filter(n => n.unread).length;
   return { notifs, unreadCount, markAllRead };
 }
@@ -101,9 +130,11 @@ function NotifPanel({ notifs, markAllRead, onClose }) {
             <div className="empty-icon"><Icon name="bell"/></div>
             <div>Sin notificaciones</div>
           </div>
-        ) : notifs.map(n => (
+        ) : notifs.map(n => {
+          const c = iconBg[n.type] || iconBg.info;
+          return (
           <div key={n.id} className="notif-item" style={{ background: n.unread ? 'oklch(0.22 0.012 240 / 0.4)' : undefined }}>
-            <div className="notif-icon" style={{ background: iconBg[n.type].bg, color: iconBg[n.type].color }}>
+            <div className="notif-icon" style={{ background: c.bg, color: c.color }}>
               <Icon name={n.icon} size={14}/>
             </div>
             <div className="notif-body">
@@ -113,7 +144,8 @@ function NotifPanel({ notifs, markAllRead, onClose }) {
             </div>
             {n.unread && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand)', marginTop: 10, flexShrink: 0 }}/>}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -131,7 +163,7 @@ function App() {
 
   a_uE(() => { if (auth) localStorage.setItem('zeutica-auth', JSON.stringify(auth)); }, [auth]);
   a_uE(() => { localStorage.setItem('zeutica-page', current); }, [current]);
-  a_uE(() => { window.api.token = auth?.token ?? null; }, [auth]);
+  a_uE(() => { window.api.token = auth?.token ?? null; window.api.id_usuario = auth?.id_usuario ?? null; }, [auth]);
   a_uE(() => { setMobileMenuOpen(false); }, [current]);
 
   // Cmd+K handler
@@ -143,7 +175,7 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const { notifs, unreadCount, markAllRead } = useLiveNotifs(auth?.user);
+  const { notifs, unreadCount, markAllRead } = useLiveNotifs(auth?.id_usuario);
 
   // Toast on new notif (realtime)
   const prevCountRef = a_uR(notifs.length);
