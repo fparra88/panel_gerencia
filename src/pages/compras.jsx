@@ -8,6 +8,9 @@ function PageCompras() {
   const [numFactura, setNumFactura] = rp_uS('');
   const [proveedor, setProveedor] = rp_uS('');
   const [ivaPct, setIvaPct] = rp_uS(16);
+  const [fechaFactura, setFechaFactura] = rp_uS(() => new Date().toISOString().slice(0, 10));
+  const [condicionPago, setCondicionPago] = rp_uS('CONTADO');
+  const [plazoDias, setPlazoDias] = rp_uS(30);
   const [productos, setProductos] = rp_uS([]);
   const [selectedSku, setSelectedSku] = rp_uS('');
   const [costosBd, setCostosBd] = rp_uS([]);
@@ -45,7 +48,14 @@ function PageCompras() {
   const ivaMonto      = baseGrav * (ivaPct / 100);
   const totalFinal    = baseGrav + ivaMonto;
 
-  const resetForm = () => { setCarrito([]); setNumFactura(''); setProveedor(''); setIvaPct(16); setShowForm(false); };
+  const fechaVencimiento = rp_uM(() => {
+    if (condicionPago !== 'CREDITO') return null;
+    const d = new Date(fechaFactura + 'T00:00:00');
+    d.setDate(d.getDate() + Number(plazoDias || 0));
+    return d.toISOString().slice(0, 10);
+  }, [condicionPago, fechaFactura, plazoDias]);
+
+  const resetForm = () => { setCarrito([]); setNumFactura(''); setProveedor(''); setIvaPct(16); setFechaFactura(new Date().toISOString().slice(0, 10)); setCondicionPago('CONTADO'); setPlazoDias(30); setShowForm(false); };
 
   const agregarItem = () => {
     if (!selectedSku || qtyItem < 1 || costoUnit <= 0) {
@@ -81,6 +91,19 @@ function PageCompras() {
     const r = await window.api.registrarCompra(payload);
     if (r.ok) {
       await Promise.all(carrito.map(it => window.api.actualizarCostoPromedio(it.sku, it.costo_prom)));
+      // Si es a crédito, genera la cuenta por pagar. Backend calcula vencimiento/saldo/estado.
+      if (confirm.condicionPago === 'CREDITO') {
+        const cp = await window.api.crearCuentaPagar({
+          num_factura: confirm.numFactura,
+          proveedor: confirm.proveedor,
+          fecha_factura: confirm.fechaFactura,
+          condicion_pago: 'CREDITO',
+          plazo_dias: confirm.plazoDias,
+          total: confirm.total,
+          usuario: window.api.usuario || 'usuario',
+        });
+        if (!cp.ok) toast.warn('Compra registrada, cuenta por pagar falló', cp.error || 'Regístrala manualmente');
+      }
       toast.success('Factura registrada', confirm.numFactura);
       setConfirm(null); resetForm();
       setCompras(await window.api.compras());
@@ -112,6 +135,29 @@ function PageCompras() {
                 <input className="input" value={proveedor} onChange={e => setProveedor(e.target.value)} placeholder="Nombre del proveedor"/></div>
               <div className="field"><label className="field-label">IVA (%)</label>
                 <input className="input mono" type="number" min="0" max="100" step="0.5" value={ivaPct} onChange={e => setIvaPct(Number(e.target.value) || 0)}/></div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: condicionPago === 'CREDITO' ? '1fr 1fr 1fr 1fr' : '1fr 1fr', gap: 12 }}>
+              <div className="field"><label className="field-label">Fecha factura</label>
+                <input className="input" type="date" value={fechaFactura} onChange={e => setFechaFactura(e.target.value)}/></div>
+              <div className="field"><label className="field-label">Condición de pago</label>
+                <select className="select" value={condicionPago} onChange={e => setCondicionPago(e.target.value)}>
+                  <option value="CONTADO">Contado</option>
+                  <option value="CREDITO">Crédito</option>
+                </select></div>
+              {condicionPago === 'CREDITO' && (
+                <>
+                  <div className="field"><label className="field-label">Plazo</label>
+                    <select className="select" value={plazoDias} onChange={e => setPlazoDias(Number(e.target.value))}>
+                      <option value={15}>15 días</option>
+                      <option value={30}>30 días</option>
+                      <option value={45}>45 días</option>
+                      <option value={60}>60 días</option>
+                      <option value={90}>90 días</option>
+                    </select></div>
+                  <div className="field"><label className="field-label">Vence</label>
+                    <input className="input mono" type="text" value={fechaVencimiento ? window.fmt.date(fechaVencimiento) : '—'} readOnly disabled/></div>
+                </>
+              )}
             </div>
             <div style={{ padding: 12, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', border: '1px solid var(--line)' }}>
               <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Agregar ítem al carrito</div>
@@ -185,7 +231,7 @@ function PageCompras() {
               <button className="btn btn-primary btn-sm" onClick={() => {
                 if (!numFactura.trim()) { toast.error('Falta factura', 'Ingresa el número de factura'); return; }
                 if (!proveedor.trim()) { toast.error('Falta proveedor', 'Ingresa el nombre del proveedor'); return; }
-                setConfirm({ numFactura: numFactura.trim(), proveedor: proveedor.trim(), total: totalFinal, nItems: carrito.length });
+                setConfirm({ numFactura: numFactura.trim(), proveedor: proveedor.trim(), total: totalFinal, nItems: carrito.length, condicionPago, plazoDias, fechaFactura, fechaVencimiento });
               }}><Icon name="check" size={13}/> Registrar factura</button>
             </div>
           )}
@@ -196,6 +242,9 @@ function PageCompras() {
         <div className="card" style={{ marginBottom: 16, border: '1px solid var(--warn)' }}>
           <div className="card-body">
             <p style={{ margin: 0, fontSize: 13 }}>¿Confirmas registrar factura <strong>{confirm.numFactura}</strong> de <strong>{confirm.proveedor}</strong> con <strong>{confirm.nItems} ítems</strong> por <strong>{window.fmt.mxn(confirm.total)}</strong>?</p>
+            {confirm.condicionPago === 'CREDITO'
+              ? <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--warn)' }}>A crédito {confirm.plazoDias} días · vence {window.fmt.date(confirm.fechaVencimiento)} → genera cuenta por pagar.</p>
+              : <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--fg-2)' }}>Pago de contado · no genera cuenta por pagar.</p>}
           </div>
           <div className="card-footer">
             <button className="btn btn-secondary btn-sm" onClick={() => setConfirm(null)} disabled={submitting}>Cancelar</button>

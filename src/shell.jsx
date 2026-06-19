@@ -16,8 +16,11 @@ const NAV = [
   { key: 'cleanest',     label: 'CleanestChoice',   icon: 'stars' },
   { key: 'compras',      label: 'Compras',          icon: 'cart', gerencia: true },
   { key: 'cobranza',     label: 'Monitor Cobranza', icon: 'eye' },
+  { key: 'cuentaspagar', label: 'Cuentas por Pagar',icon: 'cash', gerencia: true },
   { key: 'usuarios',    label: 'Usuarios',         icon: 'users', gerencia: true },
   { key: 'contrasena',  label: 'Contraseña',       icon: 'lock' },
+  { key: 'devoluciones',  label: 'Devoluciones',     icon: 'users' },
+  { key: 'registro_ingresos',  label: 'Registro de ingresos',       icon: 'login', gerencia: true },
 ];
 
 const GERENCIA_USERS = ['gerencia', 'fparra'];
@@ -47,7 +50,7 @@ function Sidebar({ current, setCurrent, user, onLogout, live, mobileOpen }) {
           <NavItem key={n.key} item={n} active={current === n.key} onClick={() => setCurrent(n.key)} canSee={canSee(n, user)} onBlock={() => toast.warn('Acceso restringido', 'Solo gerencia puede ver esta sección')}/>
         ))}
         <div className="sidebar-section">Finanzas</div>
-        {NAV.slice(9, 14).map((n) => (
+        {NAV.slice(9, 15).map((n) => (
           <NavItem key={n.key} item={n} active={current === n.key} onClick={() => setCurrent(n.key)} canSee={canSee(n, user)} onBlock={() => toast.warn('Acceso restringido', 'Solo gerencia puede ver esta sección')}/>
         ))}
       </nav>
@@ -149,6 +152,18 @@ function Topbar({ current, user, onOpenNotifs, notifCount, onCmd, onMenuToggle, 
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 13 }}
               >
                 <Icon name="lock" size={14}/> Contraseña
+              </button>
+              <button
+                onClick={() => goTo('devoluciones')}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 13 }}
+              >
+                <Icon name="refresh" size={14}/> devoluciones
+              </button>
+              <button
+                onClick={() => goTo('registro_ingresos')}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 13 }}
+              >
+                <Icon name="user" size={14}/> Registro de ingresos
               </button>
             </div>
           )}

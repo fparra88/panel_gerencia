@@ -225,6 +225,20 @@ const api = {
   async registrarCompra(payload) {
     return tryFetch('/zeutica/compras', { method: 'POST', body: JSON.stringify(payload) });
   },
+  // Cuentas por pagar (deuda a proveedores). Espejo de creditos/abonos.
+  async cuentasPorPagar() {
+    const r = await tryFetch('/zeutica/cuentas-por-pagar');
+    if (!r.ok) return [];
+    return Array.isArray(r.data) ? r.data : (r.data.data || []);
+  },
+  // Backend calcula fecha_vencimiento (fecha_factura + plazo_dias), saldo_pendiente y estado.
+  async crearCuentaPagar(payload) {
+    return tryFetch('/zeutica/cuentas-por-pagar', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  // Schema backend: { id_cuenta: int, monto: float, metodo: str, referencia: str, fecha_pago: str, usuario: str }
+  async registrarPagoProveedor(payload) {
+    return tryFetch('/zeutica/pagos-proveedor', { method: 'POST', body: JSON.stringify(payload) });
+  },
   async ultimosCostos(sku) {
     const r = await tryFetch(`/zeutica/ultimos-costos/${sku}`);
     return r.ok ? (r.data.costos || []) : [];
@@ -276,6 +290,20 @@ const api = {
   async registrarVenta(payload) {
     return tryFetch('/zeutica/producto/venta', { method: 'POST', body: JSON.stringify(payload) });
   },
+  // Devolución de producto. sku en path; body schema { sku, producto, cantidad, plataforma, reingreso }.
+  async registrarDevolucion(sku, payload) {
+    return tryFetch(`/zeutica/producto/devolucion/${encodeURIComponent(sku)}`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  // Traer las devoluciones totales.
+  async devoluciones() {
+    const r = await tryFetch('/zeutica/productos/devoluciones');
+    return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
+  },
+  // Traer los registro de login.
+  async registroIngresos() {
+    const r = await tryFetch('/zeutica/registro-login');
+    return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
+  },
   async registrarVentaCleanest(cleanestPayload) {
     return tryFetch('/zeutica/cleanest/venta', { method: 'POST', body: JSON.stringify(cleanestPayload) }); 
   },
@@ -306,6 +334,9 @@ const api = {
   },
   async editarProducto(payload) {
     return tryFetch('/zeutica/productos/editados', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async crearProducto(payload) {
+    return tryFetch('/zeutica/producto/nuevo', { method: 'POST', body: JSON.stringify(payload) });
   },
   async registrarConteo(payload) {
     return tryFetch('/zeutica/inventario/conteo', { method: 'POST', body: JSON.stringify(payload) });

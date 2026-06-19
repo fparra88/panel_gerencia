@@ -29,6 +29,8 @@ function PageInventario({ user }) {
   const [cat, setCat] = inv_uS('Todas');
   const [stockFilter, setStockFilter] = inv_uS('todos');
   const [showNew, setShowNew] = inv_uS(false);
+  const [newProd, setNewProd] = inv_uS({ sku: '', nombre: '', categoria: '', medida: '', ubicacion: '', stock_minimo: 0, stock_bodega: 0, stock_full: 0, stock_fba: 0, stock_clean: 0, stock_total: 0, numero_referencia: 0, costo_total: 0, precio: 0, precio_2: 0, precio_3: 0, precio_amazon: 0, precio_clean: 0 });
+  const [newSaving, setNewSaving] = inv_uS(false);
   const [editProduct, setEditProduct] = inv_uS(null);
   const [editSaving, setEditSaving] = inv_uS(false);
   const [expandedSkus, setExpandedSkus] = inv_uS({});
@@ -181,14 +183,25 @@ function PageInventario({ user }) {
                 <div className="field"><label className="field-label">Ubicación</label><input className="input" value={editProduct.ubicacion || ''} onChange={e => setEditProduct(p => ({ ...p, ubicacion: e.target.value }))}/></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                <div className="field"><label className="field-label">Stock mín.</label><input className="input" type="number" value={editProduct.stock_minimo} onChange={e => setEditProduct(p => ({ ...p, stock_minimo: Number(e.target.value) }))}/></div>
                 <div className="field"><label className="field-label">Núm. referencia</label><input className="input" type="number" value={editProduct.numero_referencia || 0} onChange={e => setEditProduct(p => ({ ...p, numero_referencia: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Stock mín.</label><input className="input" type="number" value={editProduct.stock_minimo} onChange={e => setEditProduct(p => ({ ...p, stock_minimo: Number(e.target.value) }))}/></div>
                 <div className="field"><label className="field-label">Costo total</label><input className="input" type="number" value={editProduct.costo_total} onChange={e => setEditProduct(p => ({ ...p, costo_total: Number(e.target.value) }))}/></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+                <div className="field"><label className="field-label">Stock bodega</label><input className="input" type="number" value={editProduct.stock_bodega || 0} onChange={e => setEditProduct(p => ({ ...p, stock_bodega: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Stock Full</label><input className="input" type="number" value={editProduct.stock_full || 0} onChange={e => setEditProduct(p => ({ ...p, stock_full: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Stock FBA</label><input className="input" type="number" value={editProduct.stock_fba || 0} onChange={e => setEditProduct(p => ({ ...p, stock_fba: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Stock Clean</label><input className="input" type="number" value={editProduct.stock_clean || 0} onChange={e => setEditProduct(p => ({ ...p, stock_clean: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Stock Total</label><input className="input" type="number" value={editProduct.stock_total || 0} onChange={e => setEditProduct(p => ({ ...p, stock_total: Number(e.target.value) }))}/></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                 <div className="field"><label className="field-label">Precio A</label><input className="input" type="number" value={editProduct.precio} onChange={e => setEditProduct(p => ({ ...p, precio: Number(e.target.value) }))}/></div>
                 <div className="field"><label className="field-label">Precio B</label><input className="input" type="number" value={editProduct.precio_2 || 0} onChange={e => setEditProduct(p => ({ ...p, precio_2: Number(e.target.value) }))}/></div>
                 <div className="field"><label className="field-label">Precio C</label><input className="input" type="number" value={editProduct.precio_3 || 0} onChange={e => setEditProduct(p => ({ ...p, precio_3: Number(e.target.value) }))}/></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field"><label className="field-label">Precio Amazon</label><input className="input" type="number" value={editProduct.precio_amazon || 0} onChange={e => setEditProduct(p => ({ ...p, precio_amazon: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Precio Clean</label><input className="input" type="number" value={editProduct.precio_clean || 0} onChange={e => setEditProduct(p => ({ ...p, precio_clean: Number(e.target.value) }))}/></div>
               </div>
             </div>
             <div className="card-footer">
@@ -202,11 +215,18 @@ function PageInventario({ user }) {
                   medida: editProduct.medida || '',
                   ubicacion: editProduct.ubicacion || '',
                   stock_minimo: editProduct.stock_minimo,
+                  stock_bodega: editProduct.stock_bodega || 0,
+                  stock_full: editProduct.stock_full || 0,
+                  stock_fba: editProduct.stock_fba || 0,
+                  stock_clean: editProduct.stock_clean || 0,
+                  stock_total: editProduct.stock_total || 0,
                   numero_referencia: editProduct.numero_referencia || 0,
                   costo_total: editProduct.costo_total,
                   precio: editProduct.precio,
                   precio_2: editProduct.precio_2 || 0,
                   precio_3: editProduct.precio_3 || 0,
+                  precio_amazon: editProduct.precio_amazon || 0,
+                  precio_clean: editProduct.precio_clean || 0,
                 };
                 const r = await window.api.editarProducto({ usuario: user, productos: [payload] });
                 setEditSaving(false);
@@ -225,7 +245,7 @@ function PageInventario({ user }) {
       )}
 
       {showNew && (
-        <div className="modal-backdrop" onClick={() => setShowNew(false)}>
+        <div className="modal-backdrop" onClick={() => { setShowNew(false); setNewProd({ sku: '', nombre: '', categoria: '', medida: '', ubicacion: '', stock_minimo: 0, stock_bodega: 0, stock_full: 0, stock_fba: 0, stock_clean: 0, stock_total: 0, numero_referencia: 0, costo_total: 0, precio: 0, precio_2: 0, precio_3: 0, precio_amazon: 0, precio_clean: 0 }); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="card-header">
               <h3 className="card-title">Nuevo producto</h3>
@@ -233,19 +253,52 @@ function PageInventario({ user }) {
             </div>
             <div className="card-body" style={{ display: 'grid', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="field"><label className="field-label">SKU</label><input className="input" placeholder="COFPLI-001"/></div>
-                <div className="field"><label className="field-label">Categoría</label><input className="input" placeholder="COFIA"/></div>
+                <div className="field"><label className="field-label">SKU</label><input className="input" placeholder="COFPLI-001" value={newProd.sku} onChange={e => setNewProd(p => ({ ...p, sku: e.target.value }))}/></div>
+                <div className="field"><label className="field-label">Categoría</label><input className="input" placeholder="COFIA" value={newProd.categoria} onChange={e => setNewProd(p => ({ ...p, categoria: e.target.value }))}/></div>
               </div>
-              <div className="field"><label className="field-label">Nombre</label><input className="input" placeholder="Producto..."/></div>
+              <div className="field"><label className="field-label">Nombre</label><input className="input" placeholder="Producto..." value={newProd.nombre} onChange={e => setNewProd(p => ({ ...p, nombre: e.target.value }))}/></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field"><label className="field-label">Medida</label><input className="input" placeholder="PZA" value={newProd.medida} onChange={e => setNewProd(p => ({ ...p, medida: e.target.value }))}/></div>
+                <div className="field"><label className="field-label">Ubicación</label><input className="input" placeholder="CEDIS-A1" value={newProd.ubicacion} onChange={e => setNewProd(p => ({ ...p, ubicacion: e.target.value }))}/></div>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                <div className="field"><label className="field-label">Costo</label><input className="input" placeholder="0.00"/></div>
-                <div className="field"><label className="field-label">Precio A</label><input className="input" placeholder="0.00"/></div>
-                <div className="field"><label className="field-label">Stock mín.</label><input className="input" placeholder="300"/></div>
+                <div className="field"><label className="field-label">Núm. referencia</label><input className="input" type="number" value={newProd.numero_referencia} onChange={e => setNewProd(p => ({ ...p, numero_referencia: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Stock mín.</label><input className="input" type="number" value={newProd.stock_minimo} onChange={e => setNewProd(p => ({ ...p, stock_minimo: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Costo total</label><input className="input" type="number" value={newProd.costo_total} onChange={e => setNewProd(p => ({ ...p, costo_total: Number(e.target.value) }))}/></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+                <div className="field"><label className="field-label">Stock bodega</label><input className="input" type="number" value={newProd.stock_bodega} onChange={e => setNewProd(p => ({ ...p, stock_bodega: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Stock Full</label><input className="input" type="number" value={newProd.stock_full} onChange={e => setNewProd(p => ({ ...p, stock_full: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Stock FBA</label><input className="input" type="number" value={newProd.stock_fba} onChange={e => setNewProd(p => ({ ...p, stock_fba: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Stock Clean</label><input className="input" type="number" value={newProd.stock_clean} onChange={e => setNewProd(p => ({ ...p, stock_clean: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Stock Total</label><input className="input" type="number" value={newProd.stock_total} onChange={e => setNewProd(p => ({ ...p, stock_total: Number(e.target.value) }))}/></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                <div className="field"><label className="field-label">Precio A</label><input className="input" type="number" value={newProd.precio} onChange={e => setNewProd(p => ({ ...p, precio: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Precio B</label><input className="input" type="number" value={newProd.precio_2} onChange={e => setNewProd(p => ({ ...p, precio_2: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Precio C</label><input className="input" type="number" value={newProd.precio_3} onChange={e => setNewProd(p => ({ ...p, precio_3: Number(e.target.value) }))}/></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field"><label className="field-label">Precio Amazon</label><input className="input" type="number" value={newProd.precio_amazon} onChange={e => setNewProd(p => ({ ...p, precio_amazon: Number(e.target.value) }))}/></div>
+                <div className="field"><label className="field-label">Precio Clean</label><input className="input" type="number" value={newProd.precio_clean} onChange={e => setNewProd(p => ({ ...p, precio_clean: Number(e.target.value) }))}/></div>
               </div>
             </div>
             <div className="card-footer">
               <button className="btn btn-ghost btn-sm" onClick={() => setShowNew(false)}>Cancelar</button>
-              <button className="btn btn-primary btn-sm" onClick={() => askConfirm('¿Crear este nuevo producto en el inventario?', () => { toast.success('Producto creado', 'Se agregó al inventario'); window.fireConfetti(); setShowNew(false); })}>Crear producto</button>
+              <button className="btn btn-primary btn-sm" disabled={newSaving} onClick={() => askConfirm('¿Crear este nuevo producto en el inventario?', async () => {
+                setNewSaving(true);
+                const r = await window.api.crearProducto({ usuario: user, ...newProd });
+                setNewSaving(false);
+                if (r.ok) {
+                  setProductos(prev => [...prev, { ...newProd, ...(r.data || {}) }]);
+                  toast.success('Producto creado', newProd.nombre);
+                  window.fireConfetti();
+                  setShowNew(false);
+                  setNewProd({ sku: '', nombre: '', categoria: '', medida: '', ubicacion: '', stock_minimo: 0, stock_bodega: 0, stock_full: 0, stock_fba: 0, stock_clean: 0, stock_total: 0, numero_referencia: 0, costo_total: 0, precio: 0, precio_2: 0, precio_3: 0, precio_amazon: 0, precio_clean: 0 });
+                } else {
+                  toast.error('Error al crear', r.error || 'Intenta de nuevo');
+                }
+              })}>{newSaving ? <span className="spinner"/> : 'Crear producto'}</button>
             </div>
           </div>
         </div>

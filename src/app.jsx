@@ -225,6 +225,9 @@ function App() {
     cleanest:     window.PageCleanest,
     compras:      window.PageCompras,
     cobranza:     window.PageCobranza,
+    cuentaspagar: window.PageCuentasPagar,
+    devoluciones: window.PageDevoluciones,
+    registro_ingresos: window.PageRegistroIngresos,
   };
   const PageComp = pages[current] || window.PageDashboard;
 
