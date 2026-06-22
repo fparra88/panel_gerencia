@@ -228,6 +228,7 @@ function App() {
     cuentaspagar: window.PageCuentasPagar,
     devoluciones: window.PageDevoluciones,
     registro_ingresos: window.PageRegistroIngresos,
+    registro_movimientos: window.PageRegistroMovimientos,
   };
   const PageComp = pages[current] || window.PageDashboard;
 

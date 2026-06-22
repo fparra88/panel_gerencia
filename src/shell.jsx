@@ -21,6 +21,7 @@ const NAV = [
   { key: 'usuarios',    label: 'Usuarios',         icon: 'users', gerencia: true },
   { key: 'contrasena',  label: 'Contraseña',       icon: 'lock' },  
   { key: 'registro_ingresos',  label: 'Registro de ingresos',       icon: 'login', gerencia: true },
+  { key: 'registro_movimientos',  label: 'Registro de movimientos',       icon: 'login', gerencia: true },
 ];
 
 const GERENCIA_USERS = ['gerencia', 'fparra'];
@@ -50,7 +51,7 @@ function Sidebar({ current, setCurrent, user, onLogout, live, mobileOpen }) {
           <NavItem key={n.key} item={n} active={current === n.key} onClick={() => setCurrent(n.key)} canSee={canSee(n, user)} onBlock={() => toast.warn('Acceso restringido', 'Solo gerencia puede ver esta sección')}/>
         ))}
         <div className="sidebar-section">Finanzas</div>
-        {NAV.slice(11, 15).map((n) => (
+        {NAV.slice(11, 16).map((n) => (
           <NavItem key={n.key} item={n} active={current === n.key} onClick={() => setCurrent(n.key)} canSee={canSee(n, user)} onBlock={() => toast.warn('Acceso restringido', 'Solo gerencia puede ver esta sección')}/>
         ))}
       </nav>
@@ -158,6 +159,12 @@ function Topbar({ current, user, onOpenNotifs, notifCount, onCmd, onMenuToggle, 
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 12 }}
               >
                 <Icon name="user" size={14}/> Registro ingresos
+              </button>
+              <button
+                onClick={() => goTo('registro_movimientos')}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 10 }}
+              >
+                <Icon name="lock" size={14}/> Registro Movimientos
               </button>
             </div>
           )}

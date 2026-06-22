@@ -185,11 +185,13 @@ const api = {
     const r = await tryFetch('/zeutica/clientes');
     return r.ok ? r.data : [];
   },
-  async crearCliente(payload) {
-    return tryFetch('/zeutica/clientenuevo', { method: 'POST', body: JSON.stringify(payload) });
+  async crearCliente(payload, usuario) {
+    const u = encodeURIComponent(usuario || api.usuario || '');
+    return tryFetch(`/zeutica/clientenuevo/${u}`, { method: 'POST', body: JSON.stringify(payload) });
   },
-  async editarCliente(payload) {
-    return tryFetch('/zeutica/editcliente', { method: 'POST', body: JSON.stringify(payload) });
+  async editarCliente(payload, usuario) {
+    const u = encodeURIComponent(usuario || api.usuario || '');
+    return tryFetch(`/zeutica/editcliente/${u}`, { method: 'POST', body: JSON.stringify(payload) });
   },
   async ventasMes(f1, f2) {
     const r = await tryFetch(`/zeutica/ventas/${f1}/${f2}`);
@@ -281,8 +283,12 @@ const api = {
       body: JSON.stringify({ vendido: 1, codigo_cotizacion: codigo }),
     });
   },
-  async relacionFactura(records) {
-    return tryFetch('/zeutica/relacionFactura', { method: 'POST', body: JSON.stringify(records) });
+  async relacionFactura(records, usuario) {
+    const u = usuario || api.usuario;
+    const payload = Array.isArray(records)
+      ? records.map(r => ({ ...r, usuario: u }))
+      : { ...records, usuario: u };
+    return tryFetch('/zeutica/relacionFactura', { method: 'POST', body: JSON.stringify(payload) });
   },
   async firmarCotizacion(payload) {
     return tryFetch('/zeutica/firma-ventas', { method: 'POST', body: JSON.stringify(payload) });
@@ -291,8 +297,8 @@ const api = {
     return tryFetch('/zeutica/producto/venta', { method: 'POST', body: JSON.stringify(payload) });
   },
   // Devolución de producto. sku en path; body schema { sku, producto, cantidad, plataforma, reingreso }.
-  async registrarDevolucion(sku, payload) {
-    return tryFetch(`/zeutica/producto/devolucion/${encodeURIComponent(sku)}`, { method: 'POST', body: JSON.stringify(payload) });
+  async registrarDevolucion(sku, payload, usuario) {
+    return tryFetch(`/zeutica/producto/devolucion/${encodeURIComponent(sku)}`, { method: 'POST', body: JSON.stringify({ ...payload, usuario: usuario || api.usuario }) });
   },
   // Traer las devoluciones totales.
   async devoluciones() {
@@ -302,6 +308,11 @@ const api = {
   // Traer los registro de login.
   async registroIngresos() {
     const r = await tryFetch('/zeutica/registro-login');
+    return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
+  },
+  // Traer registro de movimientos del sistema (usuario, movimiento, seccion, fecha).
+  async consultaRegistros() {
+    const r = await tryFetch('/zeutica/consulta-registros');
     return r.ok ? (Array.isArray(r.data) ? r.data : (r.data.data || [])) : [];
   },
   async registrarVentaCleanest(cleanestPayload) {
@@ -323,20 +334,21 @@ const api = {
   async ubicacionesSku(sku) {
     return tryFetch(`/zeutica/productos/ubicaciones/${encodeURIComponent(sku)}`);
   },
-  async editarUbicacion(sku, payload) {
-    return tryFetch(`/zeutica/ubicacion/editar/${encodeURIComponent(sku)}`, { method: 'PUT', body: JSON.stringify(payload) });
+  async editarUbicacion(sku, payload, usuario) {
+    return tryFetch(`/zeutica/ubicacion/editar/${encodeURIComponent(sku)}`, { method: 'PUT', body: JSON.stringify({ ...payload, usuario: usuario || api.usuario }) });
   },
-  async crearUbicacion(sku, payload) {
-    return tryFetch(`/zeutica/productos/ubicacionNueva/${encodeURIComponent(sku)}`, { method: 'POST', body: JSON.stringify(payload) });
+  async crearUbicacion(sku, payload, usuario) {
+    return tryFetch(`/zeutica/productos/ubicacionNueva/${encodeURIComponent(sku)}`, { method: 'POST', body: JSON.stringify({ ...payload, usuario: usuario || api.usuario }) });
   },
-  async eliminarUbicacion(id) {
-    return tryFetch(`/zeutica/producto/eliminarUbi/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  async eliminarUbicacion(id, usuario) {
+    const u = encodeURIComponent(usuario || api.usuario || '');
+    return tryFetch(`/zeutica/producto/eliminarUbi/${encodeURIComponent(id)}/${u}`, { method: 'DELETE' });
   },
-  async editarProducto(payload) {
-    return tryFetch('/zeutica/productos/editados', { method: 'POST', body: JSON.stringify(payload) });
+  async editarProducto(payload, usuario) {
+    return tryFetch('/zeutica/productos/editados', { method: 'POST', body: JSON.stringify({ ...payload, usuario: usuario || api.usuario }) });
   },
-  async crearProducto(payload) {
-    return tryFetch('/zeutica/producto/nuevo', { method: 'POST', body: JSON.stringify(payload) });
+  async crearProducto(payload, usuario) {
+    return tryFetch('/zeutica/producto/nuevo', { method: 'POST', body: JSON.stringify({ ...payload, usuario: usuario || api.usuario }) });
   },
   async registrarConteo(payload) {
     return tryFetch('/zeutica/inventario/conteo', { method: 'POST', body: JSON.stringify(payload) });
