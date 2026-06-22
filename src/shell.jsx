@@ -12,14 +12,14 @@ const NAV = [
   { key: 'reportes',     label: 'Reportes',         icon: 'chart' },
   { key: 'full',         label: 'Traspaso FULL',    icon: 'transfer' },  
   { key: 'gastos',       label: 'Gastos Operativos',icon: 'wallet' },
+  { key: 'devoluciones',  label: 'Devoluciones',     icon: 'refresh' },
   { key: 'pendientes',   label: 'Cuentas Pendientes',icon: 'clock', gerencia: true },
   { key: 'cleanest',     label: 'CleanestChoice',   icon: 'stars' },
   { key: 'compras',      label: 'Compras',          icon: 'cart', gerencia: true },
   { key: 'cobranza',     label: 'Monitor Cobranza', icon: 'eye' },
   { key: 'cuentaspagar', label: 'Cuentas por Pagar',icon: 'cash', gerencia: true },
   { key: 'usuarios',    label: 'Usuarios',         icon: 'users', gerencia: true },
-  { key: 'contrasena',  label: 'Contraseña',       icon: 'lock' },
-  { key: 'devoluciones',  label: 'Devoluciones',     icon: 'users' },
+  { key: 'contrasena',  label: 'Contraseña',       icon: 'lock' },  
   { key: 'registro_ingresos',  label: 'Registro de ingresos',       icon: 'login', gerencia: true },
 ];
 
@@ -46,11 +46,11 @@ function Sidebar({ current, setCurrent, user, onLogout, live, mobileOpen }) {
           <NavItem key={n.key} item={n} active={current === n.key} onClick={() => setCurrent(n.key)} canSee={canSee(n, user)} onBlock={() => toast.warn('Acceso restringido', 'Solo gerencia puede ver esta sección')}/>
         ))}
         <div className="sidebar-section">Operación</div>
-        {NAV.slice(1, 9).map((n) => (
+        {NAV.slice(1, 11).map((n) => (
           <NavItem key={n.key} item={n} active={current === n.key} onClick={() => setCurrent(n.key)} canSee={canSee(n, user)} onBlock={() => toast.warn('Acceso restringido', 'Solo gerencia puede ver esta sección')}/>
         ))}
         <div className="sidebar-section">Finanzas</div>
-        {NAV.slice(9, 15).map((n) => (
+        {NAV.slice(11, 15).map((n) => (
           <NavItem key={n.key} item={n} active={current === n.key} onClick={() => setCurrent(n.key)} canSee={canSee(n, user)} onBlock={() => toast.warn('Acceso restringido', 'Solo gerencia puede ver esta sección')}/>
         ))}
       </nav>
@@ -152,18 +152,12 @@ function Topbar({ current, user, onOpenNotifs, notifCount, onCmd, onMenuToggle, 
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 13 }}
               >
                 <Icon name="lock" size={14}/> Contraseña
-              </button>
-              <button
-                onClick={() => goTo('devoluciones')}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 13 }}
-              >
-                <Icon name="refresh" size={14}/> devoluciones
-              </button>
+              </button>              
               <button
                 onClick={() => goTo('registro_ingresos')}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 13 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-1)', fontSize: 12 }}
               >
-                <Icon name="user" size={14}/> Registro de ingresos
+                <Icon name="user" size={14}/> Registro ingresos
               </button>
             </div>
           )}
