@@ -356,8 +356,9 @@ const api = {
   async crearOrden(payload) {
     return tryFetch('/zeutica/ordenes', { method: 'POST', body: JSON.stringify(payload) });
   },
-  async actualizarOrden(id, payload) {
-    return tryFetch(`/zeutica/cleanest/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  async actualizarOrden(id, payload, usuario) {
+    const u = encodeURIComponent(usuario || api.usuario || '');
+    return tryFetch(`/zeutica/cleanest/${id}/${u}`, { method: 'PATCH', body: JSON.stringify(payload) });
   },
   async obtenerFirma(norden) {
     return tryFetch(`/zeutica/obtener-firma?numero_orden=${encodeURIComponent(norden)}`);
