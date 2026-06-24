@@ -6,6 +6,7 @@ function PageRegistroMovimientos({ user }) {
   const [loading, setLoading] = mov_uS(true);
   const [desde, setDesde] = mov_uS('');
   const [hasta, setHasta] = mov_uS('');
+  const [q, setQ] = mov_uS('');
 
   const cargar = async () => {
     setLoading(true);
@@ -26,16 +27,18 @@ function PageRegistroMovimientos({ user }) {
   })), [registros]);
 
   const filtrados = mov_uM(() => {
+    const lq = q.trim().toLowerCase();
     return normalizados.filter(r => {
+      if (lq && !`${r.usuario} ${r.movimiento} ${r.seccion}`.toLowerCase().includes(lq)) return false;
       if (!r.fecha) return !desde && !hasta;
       const t = new Date(r.fecha).getTime();
       if (desde && t < new Date(desde + 'T00:00:00').getTime()) return false;
       if (hasta && t > new Date(hasta + 'T23:59:59').getTime()) return false;
       return true;
     });
-  }, [normalizados, desde, hasta]);
+  }, [normalizados, desde, hasta, q]);
 
-  const limpiarFiltro = () => { setDesde(''); setHasta(''); };
+  const limpiarFiltro = () => { setDesde(''); setHasta(''); setQ(''); };
 
   return (
     <div className="page">
@@ -50,6 +53,13 @@ function PageRegistroMovimientos({ user }) {
         <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="field">
+              <label className="field-label">Buscar</label>
+              <div className="input-group">
+                <span className="input-group-icon"><Icon name="search" size={14}/></span>
+                <input className="input" placeholder="Usuario, movimiento o sección..." value={q} onChange={e => setQ(e.target.value)}/>
+              </div>
+            </div>
+            <div className="field">
               <label className="field-label">Desde</label>
               <input className="input" type="date" value={desde} max={hasta || undefined} onChange={e => setDesde(e.target.value)}/>
             </div>
@@ -57,7 +67,7 @@ function PageRegistroMovimientos({ user }) {
               <label className="field-label">Hasta</label>
               <input className="input" type="date" value={hasta} min={desde || undefined} onChange={e => setHasta(e.target.value)}/>
             </div>
-            {(desde || hasta) && (
+            {(desde || hasta || q) && (
               <button className="btn btn-ghost btn-sm" onClick={limpiarFiltro}>
                 <Icon name="x" size={13}/> Limpiar
               </button>
@@ -77,7 +87,7 @@ function PageRegistroMovimientos({ user }) {
               {loading ? (
                 <tr><td colSpan={4} className="empty">Cargando registros...</td></tr>
               ) : filtrados.length === 0 ? (
-                <tr><td colSpan={4} className="empty">Sin registros de movimientos{(desde || hasta) ? ' en el rango seleccionado' : ''}</td></tr>
+                <tr><td colSpan={4} className="empty">Sin registros de movimientos{(desde || hasta || q) ? ' que coincidan con el filtro' : ''}</td></tr>
               ) : filtrados.map(r => (
                 <tr key={r.id}>
                   <td style={{ fontWeight: 500 }}>{r.usuario}</td>

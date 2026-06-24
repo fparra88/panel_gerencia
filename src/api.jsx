@@ -344,6 +344,9 @@ const api = {
     const u = encodeURIComponent(usuario || api.usuario || '');
     return tryFetch(`/zeutica/producto/eliminarUbi/${encodeURIComponent(id)}/${u}`, { method: 'DELETE' });
   },
+  async registroUbicaciones(sku) {
+    return tryFetch(`/zeutica/ubicaciones/registro/${encodeURIComponent(sku)}`);
+  },
   async editarProducto(payload, usuario) {
     return tryFetch('/zeutica/productos/editados', { method: 'POST', body: JSON.stringify({ ...payload, usuario: usuario || api.usuario }) });
   },

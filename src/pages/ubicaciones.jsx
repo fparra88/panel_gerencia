@@ -1,7 +1,7 @@
 // ===== Zeutica — Ubicaciones de Bodega =====
 const { useState: rp_uS, useEffect: rp_uE, useMemo: rp_uM } = React;
 
-const UBI_BLANK = { warehouse_id: '', cantidad: 0 };
+const UBI_BLANK = { warehouse_id: '', cantidad: 0, cama: 0 };
 
 function PageUbicaciones() {
   const toast = window.useToast();
@@ -15,8 +15,11 @@ function PageUbicaciones() {
   const [form, setForm] = rp_uS(UBI_BLANK);
   const [saving, setSaving] = rp_uS(false);
   const [showNueva, setShowNueva] = rp_uS(false);
-  const [nuevaForm, setNuevaForm] = rp_uS({ warehouse_id: '', cantidad: 0 });
+  const [nuevaForm, setNuevaForm] = rp_uS({ warehouse_id: '', cantidad: 0, cama: 0 });
   const [savingNueva, setSavingNueva] = rp_uS(false);
+  const [registro, setRegistro] = rp_uS([]);
+  const [loadingReg, setLoadingReg] = rp_uS(false);
+  const [showRegistro, setShowRegistro] = rp_uS(false);
 
   rp_uE(() => { (async () => setProductos(await window.api.productos()))(); }, []);
 
@@ -41,14 +44,16 @@ function PageUbicaciones() {
     if (!nuevaForm.warehouse_id.trim()) { toast.error('Campo requerido', 'Ingresa la ubicación'); return; }
     setSavingNueva(true);
     const r = await window.api.crearUbicacion(selSku, {
+      sku: selSku,
       warehouse_id: nuevaForm.warehouse_id.trim(),
       cantidad: Number(nuevaForm.cantidad) || 0,
+      cama: parseInt(nuevaForm.cama, 10) || 0,
     });
     setSavingNueva(false);
     if (r.ok) {
       toast.success('Ubicación creada', selSku);
       window.fireConfetti();
-      setNuevaForm({ warehouse_id: '', cantidad: 0 });
+      setNuevaForm({ warehouse_id: '', cantidad: 0, cama: 0 });
       setShowNueva(false);
       await cargarUbicaciones(selSku);
     } else {
@@ -70,12 +75,24 @@ function PageUbicaciones() {
       setUbicaciones([]);
       toast.error('Error al cargar', `No se pudo obtener ubicaciones de ${sku}`);
     }
+    cargarRegistro(sku);
+  };
+
+  const cargarRegistro = async (sku) => {
+    setLoadingReg(true);
+    const r = await window.api.registroUbicaciones(sku);
+    setLoadingReg(false);
+    if (r.ok) {
+      setRegistro(Array.isArray(r.data) ? r.data : (r.data ? [r.data] : []));
+    } else {
+      setRegistro([]);
+    }
   };
 
   const abrirEditar = (idx) => {
     const ub = ubicaciones[idx];
     setEditIdx(idx);
-    setForm({ id: ub.id, warehouse_id: ub.warehouse_id || '', cantidad: ub.cantidad ?? 0 });
+    setForm({ id: ub.id, warehouse_id: ub.warehouse_id || '', cantidad: ub.cantidad ?? 0, cama: ub.cama ?? 0 });
   };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -84,8 +101,10 @@ function PageUbicaciones() {
     if (!selSku) return;
     setSaving(true);
     const r = await window.api.editarUbicacion(form.id, {
+      sku: selSku,
       warehouse_id: form.warehouse_id,
       cantidad: Number(form.cantidad) || 0,
+      cama: parseInt(form.cama, 10) || 0,
     });
     setSaving(false);
     if (r.ok) {
@@ -109,12 +128,20 @@ function PageUbicaciones() {
           <p className="section-subtitle">Consulta y edita las ubicaciones físicas por SKU.</p>
         </div>
         {selSku && (
-          <button
-            className={`btn btn-sm ${showNueva ? 'btn-secondary' : 'btn-primary'}`}
-            onClick={() => { setShowNueva(v => !v); setNuevaForm({ warehouse_id: '', cantidad: 0 }); }}
-          >
-            <Icon name="plus" size={13}/> {showNueva ? 'Cancelar' : 'Nueva ubicación'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className={`btn btn-sm ${showRegistro ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setShowRegistro(v => !v)}
+            >
+              <Icon name="list" size={13}/> {showRegistro ? 'Ocultar registro' : 'Ver registro'}
+            </button>
+            <button
+              className={`btn btn-sm ${showNueva ? 'btn-secondary' : 'btn-primary'}`}
+              onClick={() => { setShowNueva(v => !v); setNuevaForm({ warehouse_id: '', cantidad: 0, cama: 0 }); }}
+            >
+              <Icon name="plus" size={13}/> {showNueva ? 'Cancelar' : 'Nueva ubicación'}
+            </button>
+          </div>
         )}
       </div>
       <div className="dash-grid" style={{ marginTop: 0 }}>
@@ -202,6 +229,17 @@ function PageUbicaciones() {
                         placeholder="0"
                       />
                     </div>
+                    <div className="field"><label className="field-label">Cama</label>
+                      <input
+                        className="input mono"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={nuevaForm.cama}
+                        onChange={e => setNuevaForm(f => ({ ...f, cama: e.target.value }))}
+                        placeholder="0"
+                      />
+                    </div>
                   </div>
                   <div className="card-footer">
                     <button className="btn btn-secondary btn-sm" onClick={() => setShowNueva(false)}>Cancelar</button>
@@ -210,6 +248,49 @@ function PageUbicaciones() {
                     </button>
                   </div>
                 </div>
+              )}
+
+              {showRegistro && (
+              <div className="card" style={{ width: '100%', maxWidth: 640, alignSelf: 'center' }}>
+                <div className="card-header">
+                  <h3 className="card-title">Registro de movimientos — {selSku}</h3>
+                </div>
+                {loadingReg ? (
+                  <div className="card-body"><div className="empty" style={{ padding: 40 }}><span className="spinner"/></div></div>
+                ) : registro.length === 0 ? (
+                  <div className="card-body">
+                    <div className="empty" style={{ padding: 40 }}>
+                      <div className="empty-icon"><Icon name="building"/></div>
+                      <div>Sin registros para este SKU</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>SKU</th>
+                          <th>Ubicación</th>
+                          <th>Cama</th>
+                          <th>Cantidad</th>
+                          <th>Fecha</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {registro.map((reg, i) => (
+                          <tr key={i}>
+                            <td className="mono">{reg.sku ?? '—'}</td>
+                            <td className="mono">{reg.warehouse_id ?? '—'}</td>
+                            <td className="mono">{reg.cama ?? '—'}</td>
+                            <td className="mono">{reg.cantidad ?? '—'}</td>
+                            <td className="mono td-muted">{reg.fecha ?? '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
               )}
 
               {ubicaciones.length === 0 ? (
@@ -231,6 +312,8 @@ function PageUbicaciones() {
                           <input className="input mono" value={form.warehouse_id} onChange={e => set('warehouse_id', e.target.value)} placeholder="CEDIS-E5"/></div>
                         <div className="field"><label className="field-label">Cantidad</label>
                           <input className="input mono" type="number" min="0" value={form.cantidad} onChange={e => set('cantidad', e.target.value)} placeholder="0"/></div>
+                        <div className="field"><label className="field-label">Cama</label>
+                          <input className="input mono" type="number" min="0" step="1" value={form.cama} onChange={e => set('cama', e.target.value)} placeholder="0"/></div>
                       </div>
                       <div className="card-footer">
                         <button className="btn btn-secondary btn-sm" onClick={() => setEditIdx(null)}>Cancelar</button>
