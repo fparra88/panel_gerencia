@@ -1,5 +1,10 @@
 [phases.setup]
 nixPkgs = ["nginx"]
 
+[phases.build]
+# Esto copia tus archivos a la carpeta donde Nginx los busca por defecto
+cmds = ["mkdir -p /var/www/html", "cp -r . /var/www/html/"]
+
 [start]
-cmd = "nginx -g 'daemon off;'"
+# Ajustamos Nginx para que apunte a donde acabamos de copiar tus archivos
+cmd = "nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"
