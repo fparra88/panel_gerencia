@@ -3,6 +3,3 @@ nixPkgs = ["nginx"]
 
 [start]
 cmd = "nginx -g 'daemon off;'"
-
-[phases.setup]
-nixPkgs = ["python3", "python3Packages.pip"]
