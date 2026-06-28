@@ -2,8 +2,9 @@
 // Primary: real backend. Mock data sólo se conserva para el login demo
 // (cuando no hay servidor). Los datos de negocio vienen SIEMPRE de la API.
 
-const API_BASE = 'https://3.151.25.133:8090'; // servidor en AWS
+const API_BASE = 'http://3.151.25.133:8090'; // servidor en AWS
 //const API_BASE = 'http://127.0.0.1:8000'; // para desarrollo local
+//const API_JAVA = 'http://3.151.25.133:19999'; // para desarrollo local (Java)
 const USE_MOCK_LOGIN_FALLBACK = true; // permite demo/login sin backend
 const REQUEST_TIMEOUT = 4000;
 
@@ -379,6 +380,14 @@ const api = {
     return Array.isArray(r.data) ? r.data : (r.data.notificaciones || r.data.data || []);
   },
   // Marca una notificación como leída. notificacion_id = int.
+  async pendientesRegistro() {
+    const r = await tryFetch('/zeutica/pendientes-registro');
+    if (!r.ok) return [];
+    return Array.isArray(r.data) ? r.data : (r.data.data ?? []);
+  },
+  async agregarPendiente(payload) {
+    return tryFetch('/zeutica/pendientes-agregar', { method: 'POST', body: JSON.stringify(payload) });
+  },
   async marcarNotificacionLeida(notificacion_id) {
     return tryFetch(`/zeutica/notificaciones/marcar-leida/${encodeURIComponent(notificacion_id)}`, { method: 'POST' });
   },

@@ -210,6 +210,7 @@ function App() {
 
   const pages = {
     dashboard:    window.PageDashboard,
+    acciones_pendientes: window.PageAccionesPendientes,
     usuarios:     window.PageUsuarios,
     contrasena:   window.PageContrasena,
     inventario:   window.PageInventario,
@@ -229,6 +230,7 @@ function App() {
     devoluciones: window.PageDevoluciones,
     registro_ingresos: window.PageRegistroIngresos,
     registro_movimientos: window.PageRegistroMovimientos,
+    gerencia:             window.PageGerencia,
   };
   const PageComp = pages[current] || window.PageDashboard;
 
