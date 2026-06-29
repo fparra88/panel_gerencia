@@ -199,14 +199,40 @@ function DrawerJava({ onClose }) {
 
 const EMPTY_FORM = { usuario: 'fparra', actividad: '', prioridad: 'Media', estado: 'Pendiente', observaciones: '', fecha_promesa: '' };
 const USUARIOS_PENDIENTE = ['fparra', 'ventas'];
+const PRIO_OPTS   = ['Alta', 'Media', 'Baja'];
+const ESTADO_OPTS = ['Pendiente', 'En proceso', 'Completado', 'Cancelado'];
 
-function ModalAgregarPendiente({ onClose, onSaved }) {
+// Id real del pendiente para PATCH/DELETE (la ruta exige id_pendiente).
+const pendId = (row) => row?.id_pendiente ?? row?.id ?? null;
+
+// Backend devuelve prioridad/estado en casing mixto; mapear al valor canónico del select.
+const matchOpt = (val, opts, fallback) =>
+  opts.find(o => o.toLowerCase() === String(val ?? '').toLowerCase()) || fallback;
+const toDateInput = (v) => (v ? String(v).slice(0, 10) : ''); // ISO/datetime → yyyy-mm-dd
+
+function formFromPendiente(p) {
+  if (!p) return { ...EMPTY_FORM };
+  return {
+    usuario:       p.usuario || USUARIOS_PENDIENTE[0],
+    actividad:     p.actividad ?? '',
+    prioridad:     matchOpt(p.prioridad, PRIO_OPTS, 'Media'),
+    estado:        matchOpt(p.estado, ESTADO_OPTS, 'Pendiente'),
+    observaciones: p.observaciones ?? '',
+    fecha_promesa: toDateInput(p.fecha_promesa ?? p.fechaPromesa),
+  };
+}
+
+// pendiente = null → alta; pendiente = row → edición (PATCH).
+function ModalAgregarPendiente({ pendiente, onClose, onSaved }) {
+  const isEdit = !!pendiente;
   const toast = window.useToast();
-  const [form, setForm] = gm_uS({ ...EMPTY_FORM });
+  const [form, setForm] = gm_uS(() => formFromPendiente(pendiente));
   const [saving, setSaving] = gm_uS(false);
   const backdropRef = gm_uR(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  // Conservar el usuario original aunque no esté en la lista base.
+  const usuarioOpts = Array.from(new Set([...USUARIOS_PENDIENTE, form.usuario].filter(Boolean)));
 
   const submit = async (e) => {
     e.preventDefault();
@@ -223,21 +249,23 @@ function ModalAgregarPendiente({ onClose, onSaved }) {
       observaciones: form.observaciones.trim() || null,
       fecha_promesa: form.fecha_promesa || null,
     };
-    // 1) Insertar en BD (FastAPI). 2) Recién entonces recargar cola Java —
+    // 1) Escribir en BD (FastAPI). 2) Recién entonces recargar cola Java —
     // si corren en paralelo, recargar lee BD antes del commit y trae datos viejos.
-    const r = await window.api.agregarPendiente(payload);
+    const r = isEdit
+      ? await window.api.actualizarPendiente(pendId(pendiente), payload)
+      : await window.api.agregarPendiente(payload);
     if (!r.ok) {
       setSaving(false);
-      toast.error('Error al guardar', r.error || 'No se pudo conectar');
+      toast.error(isEdit ? 'Error al actualizar' : 'Error al guardar', r.error || 'No se pudo conectar');
       return;
     }
     const rRecarga = await javaFetch('/api/recargar', { method: 'POST' });
     setSaving(false);
     if (!rRecarga.ok) {
-      // Pendiente sí se guardó; solo falló recargar la cola Java.
-      toast.warn('Guardado, sin recargar', 'No se pudo recargar cola Java: ' + (rRecarga.error || ''));
+      // El pendiente sí se guardó; solo falló recargar la cola Java.
+      toast.warn(isEdit ? 'Actualizado, sin recargar' : 'Guardado, sin recargar', 'No se pudo recargar cola Java: ' + (rRecarga.error || ''));
     } else {
-      toast.success('Pendiente agregado', form.actividad);
+      toast.success(isEdit ? 'Pendiente actualizado' : 'Pendiente agregado', form.actividad);
     }
     onSaved();
     onClose();
@@ -259,7 +287,7 @@ function ModalAgregarPendiente({ onClose, onSaved }) {
         boxShadow: '0 8px 40px rgba(0,0,0,0.4)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Agregar pendiente</h3>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{isEdit ? 'Editar pendiente' : 'Agregar pendiente'}</h3>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} aria-label="Cerrar">
             <Icon name="close" size={14}/>
           </button>
@@ -269,7 +297,7 @@ function ModalAgregarPendiente({ onClose, onSaved }) {
           <div className="field">
             <label className="field-label">Usuario <span style={{ color: 'var(--danger)' }}>*</span></label>
             <select className="input" value={form.usuario} onChange={e => set('usuario', e.target.value)} required>
-              {USUARIOS_PENDIENTE.map(u => <option key={u} value={u}>{u}</option>)}
+              {usuarioOpts.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
           </div>
 
@@ -282,18 +310,13 @@ function ModalAgregarPendiente({ onClose, onSaved }) {
             <div className="field">
               <label className="field-label">Prioridad</label>
               <select className="input" value={form.prioridad} onChange={e => set('prioridad', e.target.value)}>
-                <option>Alta</option>
-                <option>Media</option>
-                <option>Baja</option>
+                {PRIO_OPTS.map(o => <option key={o}>{o}</option>)}
               </select>
             </div>
             <div className="field">
               <label className="field-label">Estado</label>
               <select className="input" value={form.estado} onChange={e => set('estado', e.target.value)}>
-                <option>Pendiente</option>
-                <option>En proceso</option>
-                <option>Completado</option>
-                <option>Cancelado</option>
+                {ESTADO_OPTS.map(o => <option key={o}>{o}</option>)}
               </select>
             </div>
           </div>
@@ -318,7 +341,7 @@ function ModalAgregarPendiente({ onClose, onSaved }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} disabled={saving}>Cancelar</button>
             <button type="submit" className="btn btn-primary btn-sm" style={{ flex: 1 }} disabled={saving}>
-              <Icon name="plus" size={13}/> {saving ? 'Guardando…' : 'Agregar pendiente'}
+              <Icon name={isEdit ? 'edit' : 'plus'} size={13}/> {saving ? 'Guardando…' : (isEdit ? 'Guardar cambios' : 'Agregar pendiente')}
             </button>
           </div>
         </form>
@@ -355,6 +378,8 @@ function PageGerencia() {
   const [tick, setTick]         = gm_uS(0);
   const [showForm, setShowForm]     = gm_uS(false);
   const [showDrawer, setShowDrawer] = gm_uS(false);
+  const [editRow, setEditRow]       = gm_uS(null);  // row en edición (PATCH)
+  const [deletingId, setDeletingId] = gm_uS(null);  // id en proceso de borrado
 
   const load = gm_uC(async () => {
     setLoading(true);
@@ -363,6 +388,25 @@ function PageGerencia() {
     setLastUpdate(new Date());
     setLoading(false);
   }, []);
+
+  const handleDelete = async (row) => {
+    const id = pendId(row);
+    if (id == null) { toast.error('Sin identificador', 'No se puede eliminar este pendiente'); return; }
+    if (!window.confirm(`¿Eliminar el pendiente "${row.actividad ?? id}"? Esta acción no se puede deshacer.`)) return;
+    setDeletingId(id);
+    // 1) Borrar en BD (FastAPI). 2) Recién entonces recargar cola Java.
+    const r = await window.api.eliminarPendiente(id);
+    if (!r.ok) {
+      setDeletingId(null);
+      toast.error('Error al eliminar', r.error || 'No se pudo conectar');
+      return;
+    }
+    const rRecarga = await javaFetch('/api/recargar', { method: 'POST' });
+    setDeletingId(null);
+    if (!rRecarga.ok) toast.warn('Eliminado, sin recargar', 'No se pudo recargar cola Java: ' + (rRecarga.error || ''));
+    else toast.success('Pendiente eliminado', row.actividad || '');
+    load();
+  };
 
   gm_uE(() => {
     load();
@@ -376,7 +420,13 @@ function PageGerencia() {
 
   return (
     <div className="page">
-      {showForm && <ModalAgregarPendiente onClose={() => setShowForm(false)} onSaved={load}/>}
+      {(showForm || editRow) && (
+        <ModalAgregarPendiente
+          pendiente={editRow}
+          onClose={() => { setShowForm(false); setEditRow(null); }}
+          onSaved={load}
+        />
+      )}
       {showDrawer && <DrawerJava onClose={() => setShowDrawer(false)}/>}
       <div className="section-header">
         <div>
@@ -440,16 +490,44 @@ function PageGerencia() {
                   {cols.map(k => (
                     <th key={k}>{fmtHeader(k)}</th>
                   ))}
+                  <th style={{ textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {data.map((row, i) => (
-                  <tr key={row.id ?? row.id_registro ?? row.folio ?? i}>
-                    {cols.map(k => (
-                      <td key={k}>{fmtCell(k, row[k])}</td>
-                    ))}
-                  </tr>
-                ))}
+                {data.map((row, i) => {
+                  const rowId = pendId(row);
+                  const isDeleting = deletingId != null && deletingId === rowId;
+                  return (
+                    <tr key={row.id ?? row.id_registro ?? row.folio ?? i}>
+                      {cols.map(k => (
+                        <td key={k}>{fmtCell(k, row[k])}</td>
+                      ))}
+                      <td>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm"
+                            onClick={() => setEditRow(row)}
+                            disabled={deletingId != null}
+                            title="Editar" aria-label="Editar pendiente"
+                          >
+                            <Icon name="edit" size={14}/>
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm"
+                            onClick={() => handleDelete(row)}
+                            disabled={deletingId != null}
+                            style={{ color: 'var(--danger)' }}
+                            title="Eliminar" aria-label="Eliminar pendiente"
+                          >
+                            {isDeleting
+                              ? <div className="spinner" style={{ width: 14, height: 14 }}/>
+                              : <Icon name="trash" size={14}/>}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

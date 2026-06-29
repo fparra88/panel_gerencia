@@ -388,6 +388,13 @@ const api = {
   async agregarPendiente(payload) {
     return tryFetch('/zeutica/pendientes-agregar', { method: 'POST', body: JSON.stringify(payload) });
   },
+  // Mismo schema que agregarPendiente; id_pendiente va en la ruta.
+  async actualizarPendiente(id, payload) {
+    return tryFetch(`/zeutica/pendientes-actualizar/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  async eliminarPendiente(id) {
+    return tryFetch(`/zeutica/pendientes-eliminar/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
   async marcarNotificacionLeida(notificacion_id) {
     return tryFetch(`/zeutica/notificaciones/marcar-leida/${encodeURIComponent(notificacion_id)}`, { method: 'POST' });
   },
