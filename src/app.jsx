@@ -248,9 +248,6 @@ function App() {
         mobileOpen={mobileMenuOpen}
       />
       <main className="main">
-        <div className="app-banner-strip" aria-hidden="true">
-          <img src="imagenes/zeuticaBanner.webp" alt="" className="app-banner-img" />
-        </div>
         <window.AppShell.Topbar
           current={current}
           user={auth.user}

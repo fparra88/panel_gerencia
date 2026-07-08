@@ -429,7 +429,7 @@ function PageVentas({ user }) {
               <div className="field">
                 <label className="field-label">Pago</label>
                 <select className="select" value={metPago} onChange={e => setMetPago(e.target.value)}>
-                  <option>CONTADO</option><option>TRANSFERENCIA</option><option>CREDITO</option>
+                  <option>CONTADO</option><option>TRANSFERENCIA</option><option>CREDITO</option><option>TARJETA CREDITO</option>
                 </select>
               </div>
             </div>

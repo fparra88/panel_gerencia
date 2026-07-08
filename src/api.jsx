@@ -54,7 +54,7 @@ const MOCK = {
         utilidad_total: cant * precio * 0.28,
         plataforma: plataformas[Math.floor(Math.random() * plataformas.length)],
         nombreComprador: MOCK_getCli(i),
-        condicion_pago: ['CONTADO','TRANSFERENCIA','CREDITO'][Math.floor(Math.random() * 3)],
+        condicion_pago: ['CONTADO','TRANSFERENCIA','CREDITO','TARJETA CREDITO'][Math.floor(Math.random() * 4)],
         usuario: ['gerencia','vendedor1','fparra'][Math.floor(Math.random() * 3)],
       });
     }
