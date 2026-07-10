@@ -357,8 +357,9 @@ const api = {
   async registrarConteo(payload) {
     return tryFetch('/zeutica/inventario/conteo', { method: 'POST', body: JSON.stringify(payload) });
   },
-  async crearOrden(payload) {
-    return tryFetch('/zeutica/ordenes', { method: 'POST', body: JSON.stringify(payload) });
+  async crearOrden(payload, usuario) {
+    const u = encodeURIComponent(usuario || api.usuario || '');
+    return tryFetch(`/zeutica/ordenes/${u}`, { method: 'POST', body: JSON.stringify(payload) });
   },
   async actualizarOrden(id, payload, usuario) {
     const u = encodeURIComponent(usuario || api.usuario || '');
