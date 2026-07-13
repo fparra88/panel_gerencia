@@ -81,7 +81,8 @@ function PageAccionesPendientes({ user }) {
   const cargarSiguiente = ap_uC(async () => {
     setLoading(true);
     setError(null);
-    const r = await apFetch('/api/pendientes/siguiente');
+    const url = `/api/pendientes/siguiente?usuario=${encodeURIComponent(api.usuario)}`;
+    const r = await apFetch(url);
     setLoading(false);
     if (r.ok) {
       setSiguiente(r.data);
@@ -99,7 +100,8 @@ function PageAccionesPendientes({ user }) {
   const inicializar = ap_uC(async () => {
     setLoading(true);
     setError(null);
-    const r = await apFetch('/api/pendientes/en-proceso');
+    const url = `/api/pendientes/en-proceso?usuario=${encodeURIComponent(api.usuario)}`;
+    const r = await apFetch(url);
     if (r.ok && r.data) {
       // Backend puede devolver la tarea directa o envuelta en { atendido, enCola }.
       setEnProceso(r.data?.atendido ?? r.data);
@@ -126,7 +128,8 @@ function PageAccionesPendientes({ user }) {
   const cargarLista = ap_uC(async () => {
     setLoadingLista(true);
     setErrorLista(null);
-    const r = await apFetch('/api/pendientes');
+    const url = `/api/pendientes?usuario=${encodeURIComponent(api.usuario)}`;
+    const r = await apFetch(url);
     setLoadingLista(false);
     if (!r.ok) {
       setErrorLista(r.error || 'No se pudo cargar la lista');
@@ -149,7 +152,8 @@ function PageAccionesPendientes({ user }) {
       return;
     }
     setActing(true);
-    const r = await apFetch('/api/pendientes/atender', { method: 'POST' });
+    const url = `/api/pendientes/atender?usuario=${encodeURIComponent(api.usuario)}`;
+    const r = await apFetch(url, { method: 'POST' });
     setActing(false);
     if (!r.ok) {
       toast.error('No se pudo atender', r.error || 'Sin conexión');
@@ -166,7 +170,8 @@ function PageAccionesPendientes({ user }) {
     const id = enProceso?.id;
     if (id == null) return;
     setActing(true);
-    const r = await apFetch(`/api/pendientes/${id}/terminar`, { method: 'POST' });
+    const url = `/api/pendientes/${id}/terminar?usuario=${encodeURIComponent(api.usuario)}`;
+    const r = await apFetch(url, { method: 'POST' });
     setActing(false);
     if (!r.ok) {
       toast.error('No se pudo terminar', r.error || 'Sin conexión');

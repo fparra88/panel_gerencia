@@ -32,8 +32,8 @@ function PageCobranza() {
       </div>
       <div className="dash-kpis">
         <window.MiniStat label="Clientes con crédito" value={clientes} icon="users"/>
-        <window.MiniStat label="Saldo total" value={window.fmt.mxn(total)} icon="wallet"/>
-        <window.MiniStat label="Promedio" value={window.fmt.mxn(total / (clientes || 1))} icon="trend"/>
+        <window.MiniStat label="Saldo total" value={window.fmt.mxn(total * 1.16)} icon="wallet"/>
+        <window.MiniStat label="Promedio" value={window.fmt.mxn(total / (clientes || 1)*1.16)} icon="trend"/>
         <window.MiniStat label="Recuperado mes" value={window.fmt.mxn(creditos.reduce((s,c) => s + c.abonado, 0))} icon="check" tone="success"/>
       </div>
       <div className="dash-grid" style={{ marginTop: 16 }}>
@@ -41,18 +41,19 @@ function PageCobranza() {
           <div className="card-header"><h3 className="card-title">Cartera activa</h3></div>
           <div className="table-wrap">
             <table className="table">
-              <thead><tr><th>Cliente</th><th className="td-right">Saldo</th><th>Días</th><th></th></tr></thead>
+              <thead><tr><th>ID</th><th>Cliente</th><th className="td-right">Saldo</th><th>Días</th><th></th></tr></thead>
               <tbody>
                 {creditos.filter(c => c.saldo_pendiente > 0).map(c => (
                   <tr key={c.id_ventas} style={{ background: sel?.id_ventas === c.id_ventas ? 'var(--bg-2)' : undefined }}>
+                    <td className="mono" style={{ fontSize: 13, fontWeight: 500 }}>{"# " + c.id_ventas}</td>
                     <td><div style={{ fontWeight: 500 }}>{c.nombreComprador || c.nombre}</div><div className="mono td-muted" style={{ fontSize: 11 }}>#{String(c.id_ventas).slice(-6)}</div></td>
-                    <td className="td-right mono" style={{ fontWeight: 600 }}>{window.fmt.mxn(c.saldo_pendiente)}</td>
+                    <td className="td-right mono" style={{ fontWeight: 600 }}>{window.fmt.mxn(c.saldo_pendiente * 1.16)}</td>
                     <td>{(() => {
-                      const dias = c.dias_vencido ?? Math.floor((Date.now() - new Date(c.fecha_vencimiento)) / 86400000);
+                      const dias = c.dias_vencido ?? Math.floor((Date.now() - new Date(c.fecha_vencimiento)) / 1000 / 60 / 60 / 24);
                       const label = c.fecha_vencimiento ? window.fmt.date(c.fecha_vencimiento) : `${dias}d`;
                       return <span className={`badge badge-${dias > 15 ? 'danger' : 'warn'}`}><span className="badge-dot"/>{label}</span>;
                     })()}</td>
-                    <td className="td-right"><button className="btn btn-ghost btn-sm" onClick={() => { setSel(c); setMonto(c.saldo_pendiente); }}>Abonar</button></td>
+                    <td className="td-right"><button className="btn btn-ghost btn-sm" onClick={() => { setSel(c); setMonto(c.saldo_pendiente *1.16); }}>Abonar</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -71,7 +72,7 @@ function PageCobranza() {
                   <div className="mono td-muted" style={{ fontSize: 11, marginTop: 2 }}>Venta #{String(sel.id_ventas).slice(-8)}</div>
                   <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--fg-2)', fontSize: 12 }}>Saldo pendiente</span>
-                    <span className="mono" style={{ fontWeight: 600 }}>{window.fmt.mxn(sel.saldo_pendiente)}</span>
+                    <span className="mono" style={{ fontWeight: 600 }}>{window.fmt.mxn(sel.saldo_pendiente * 1.16)}</span>
                   </div>
                 </div>
                 <div className="field"><label className="field-label">Monto del abono</label>
