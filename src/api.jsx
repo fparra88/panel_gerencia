@@ -4,7 +4,7 @@
 
 const API_BASE = 'http://3.151.25.133:8090'; // servidor en AWS
 //const API_BASE = 'http://127.0.0.1:8000'; // para desarrollo local
-//const API_JAVA = 'http://3.151.25.133:19999'; // para desarrollo local (Java)
+
 const USE_MOCK_LOGIN_FALLBACK = true; // permite demo/login sin backend
 const REQUEST_TIMEOUT = 4000;
 
@@ -270,6 +270,14 @@ const api = {
       method: 'GET',
     });
     return r.ok ? r.data : null;
+  },
+  // PDF base64 de una cotización; /consulta/cotizacion ya no lo entrega.
+  async cotizacionBase64(codigo) {
+    const r = await tryFetch(`/zeutica/cotizaciones/base64/${encodeURIComponent(codigo)}`);
+    if (!r.ok) return '';
+    const d = r.data;
+    if (typeof d === 'string') return d;
+    return d.pdf || d.base64 || d.pdf_base64 || '';
   },
   async nuevoCodigo() {
     const r = await tryFetch('/zeutica/cotizaciones/nuevo-codigo');

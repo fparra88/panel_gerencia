@@ -489,12 +489,12 @@ function PageCotizaciones({ user }) {
     }
   };
 
-  const verCotizacion = (codigo) => {
+  const verCotizacion = async (codigo) => {
     setVerLoading(codigo);
     try {
-      const c = cots.find(x => x.codigo_cotizacion === codigo);
-      if (c?.pdf) {
-        const byteChars = atob(c.pdf);
+      const pdf = await window.api.cotizacionBase64(codigo);
+      if (pdf) {
+        const byteChars = atob(pdf);
         const byteArr = new Uint8Array(byteChars.length);
         for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
         const blob = new Blob([byteArr], { type: 'application/pdf' });
@@ -901,7 +901,11 @@ function PageCotizaciones({ user }) {
                   <td className="mono" style={{ fontSize: 12, fontWeight: 500 }}>{c.codigo_cotizacion}</td>
                   <td>{c.empresa}</td>
                   <td className="td-muted">{window.fmt.date(c.fecha)}</td>
-                  <td className="td-right mono">{c.items_count}</td>
+                  <td className="td-right mono">{c.items.map((item, index) => (
+                    <li key={index}>
+                        {item.nombre_producto}
+                    </li>
+                ))}</td>
                   <td className="td-right mono">{window.fmt.mxn(c.subtotal)}</td>
                   <td className="td-right mono" style={{ fontWeight: 500 }}>{window.fmt.mxn(c.total)}</td>
                   <td>
