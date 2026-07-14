@@ -203,6 +203,12 @@ const api = {
     if (!r.ok) return [];
     return r.data.cotizaciones || r.data || [];
   },
+  // Exclusivo para sección Ventas: cotizaciones abiertas con items completos (sku, cantidad, precio).
+  async cotizacionesVentas() {
+    const r = await tryFetch('/zeutica/cotizaciones/ventas');
+    if (!r.ok) return [];
+    return r.data.cotizaciones || r.data || [];
+  },
   async creditos() {
     const r = await tryFetch('/zeutica/ventas-credito');
     if (!r.ok) return [];

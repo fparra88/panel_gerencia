@@ -901,7 +901,7 @@ function PageCotizaciones({ user }) {
                   <td className="mono" style={{ fontSize: 12, fontWeight: 500 }}>{c.codigo_cotizacion}</td>
                   <td>{c.empresa}</td>
                   <td className="td-muted">{window.fmt.date(c.fecha)}</td>
-                  <td className="td-right mono">{c.items.map((item, index) => (
+                  <td className="td-right mono">{(c.items || []).map((item, index) => (
                     <li key={index}>
                         {item.nombre_producto}
                     </li>

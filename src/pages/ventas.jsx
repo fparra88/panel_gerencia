@@ -109,14 +109,14 @@ function PageVentas({ user }) {
   vt_uE(() => { (async () => {
     setProductos(await window.api.productos());
     setClientes(await window.api.clientes());
-    setCotizaciones(await window.api.cotizaciones());
+    setCotizaciones(await window.api.cotizacionesVentas());
   })(); }, []);
 
   // Re-fetch cotizaciones cada vez que se abre el panel
   vt_uE(() => {
     if (!loadCotMode) return;
     (async () => {
-      const data = await window.api.cotizaciones();
+      const data = await window.api.cotizacionesVentas();
       setCotizaciones(Array.isArray(data) ? data : []);
     })();
   }, [loadCotMode]);
@@ -268,9 +268,9 @@ function PageVentas({ user }) {
                     disabled={loadingCot}
                     onClick={async () => {
                       setLoadingCot(true);
-                      // La lista trae `items` casi siempre vacío; el detalle se consulta
-                      // por id numérico (el endpoint no acepta el código ZTC-###).
-                      let items = Array.isArray(c.items) && c.items.length ? c.items : null;
+                      // La lista trae `items` solo con nombre_producto (sin sku/cantidad/precio);
+                      // el detalle completo se consulta por id numérico (el endpoint no acepta el código ZTC-###).
+                      let items = Array.isArray(c.items) && c.items.length && c.items[0].sku ? c.items : null;
                       if (!items) {
                         const detalle = await window.api.cotizacionDetalle(c.id);
                         if (Array.isArray(detalle) && detalle.length) items = detalle;
