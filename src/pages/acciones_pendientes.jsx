@@ -81,7 +81,7 @@ function PageAccionesPendientes({ user }) {
   const cargarSiguiente = ap_uC(async () => {
     setLoading(true);
     setError(null);
-    const url = `/api/pendientes/siguiente?usuario=${encodeURIComponent(api.usuario)}`;
+    const url = `/api/pendientes/siguiente?usuario=${encodeURIComponent(user)}`;
     const r = await apFetch(url);
     setLoading(false);
     if (r.ok) {
@@ -93,14 +93,14 @@ function PageAccionesPendientes({ user }) {
     } else {
       setError(r.error || 'No se pudo conectar con localhost:8080');
     }
-  }, []);
+  }, [user]);
 
   // Al montar: ¿hay tarea bloqueante en proceso? Si 200, mostrarla como activa.
   // Solo si no hay bloqueo, hacemos peek del siguiente.
   const inicializar = ap_uC(async () => {
     setLoading(true);
     setError(null);
-    const url = `/api/pendientes/en-proceso?usuario=${encodeURIComponent(api.usuario)}`;
+    const url = `/api/pendientes/en-proceso?usuario=${encodeURIComponent(user)}`;
     const r = await apFetch(url);
     if (r.ok && r.data) {
       // Backend puede devolver la tarea directa o envuelta en { atendido, enCola }.
@@ -120,7 +120,7 @@ function PageAccionesPendientes({ user }) {
     // Cualquier otro fallo = error real (red, 5xx).
     setLoading(false);
     setError(r.error || 'No se pudo conectar con Servidor');
-  }, [cargarSiguiente]);
+  }, [cargarSiguiente, user]);
 
   ap_uE(() => { inicializar(); }, [inicializar]);
 
@@ -128,7 +128,7 @@ function PageAccionesPendientes({ user }) {
   const cargarLista = ap_uC(async () => {
     setLoadingLista(true);
     setErrorLista(null);
-    const url = `/api/pendientes?usuario=${encodeURIComponent(api.usuario)}`;
+    const url = `/api/pendientes?usuario=${encodeURIComponent(user)}`;
     const r = await apFetch(url);
     setLoadingLista(false);
     if (!r.ok) {
@@ -152,7 +152,7 @@ function PageAccionesPendientes({ user }) {
       return;
     }
     setActing(true);
-    const url = `/api/pendientes/atender?usuario=${encodeURIComponent(api.usuario)}`;
+    const url = `/api/pendientes/atender?usuario=${encodeURIComponent(user)}`;
     const r = await apFetch(url, { method: 'POST' });
     setActing(false);
     if (!r.ok) {
@@ -170,7 +170,7 @@ function PageAccionesPendientes({ user }) {
     const id = enProceso?.id;
     if (id == null) return;
     setActing(true);
-    const url = `/api/pendientes/${id}/terminar?usuario=${encodeURIComponent(api.usuario)}`;
+    const url = `/api/pendientes/${id}/terminar?usuario=${encodeURIComponent(user)}`;
     const r = await apFetch(url, { method: 'POST' });
     setActing(false);
     if (!r.ok) {

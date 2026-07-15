@@ -395,8 +395,9 @@ const api = {
     return Array.isArray(r.data) ? r.data : (r.data.notificaciones || r.data.data || []);
   },
   // Marca una notificación como leída. notificacion_id = int.
-  async pendientesRegistro() {
-    const r = await tryFetch('/zeutica/pendientes-registro');
+  async pendientesRegistro(estado = 'Pendiente') {
+    const q = estado ? `?estado=${encodeURIComponent(estado)}` : '';
+    const r = await tryFetch(`/zeutica/pendientes-registro${q}`);
     if (!r.ok) return [];
     return Array.isArray(r.data) ? r.data : (r.data.data ?? []);
   },

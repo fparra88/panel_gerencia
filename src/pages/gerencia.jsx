@@ -197,8 +197,8 @@ function DrawerJava({ onClose }) {
   );
 }
 
-const EMPTY_FORM = { usuario: 'fparra', actividad: '', prioridad: 'Media', estado: 'Pendiente', observaciones: '', fecha_promesa: '' };
-const USUARIOS_PENDIENTE = ['fparra', 'ventas'];
+const EMPTY_FORM = { usuario: 'ventas', actividad: '', prioridad: 'Media', estado: 'Pendiente', observaciones: '', fecha_promesa: '' };
+const USUARIOS_PENDIENTE = ['fparra', 'ventas', 'gerencia'];
 const PRIO_OPTS   = ['Alta', 'Media', 'Baja'];
 const ESTADO_OPTS = ['Pendiente', 'En proceso', 'Completado', 'Cancelado'];
 
@@ -370,10 +370,78 @@ function fmtHeader(key) {
   return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// Card de tabla reutilizable: mismas columnas dinámicas + acciones para cualquier estado.
+function RegistroTableCard({ title, data, loading, deletingId, onEdit, onDelete }) {
+  const cols = data.length > 0 ? Object.keys(data[0]) : [];
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <div className="card-header">
+        <h3 className="card-title">{title} {data.length > 0 && <span className="td-muted" style={{ fontWeight: 400 }}>({data.length})</span>}</h3>
+        {loading && <div className="spinner" style={{ width: 16, height: 16 }}/>}
+      </div>
+      <div className="table-wrap">
+        {data.length === 0 && !loading ? (
+          <div className="empty" style={{ padding: 48 }}>
+            <div className="empty-icon"><Icon name="ok"/></div>
+            <div>Sin registros</div>
+          </div>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                {cols.map(k => <th key={k}>{fmtHeader(k)}</th>)}
+                <th style={{ textAlign: 'right' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row, i) => {
+                const rowId = pendId(row);
+                const isDeleting = deletingId != null && deletingId === rowId;
+                return (
+                  <tr key={row.id ?? row.id_registro ?? row.folio ?? i}>
+                    {cols.map(k => <td key={k}>{fmtCell(k, row[k])}</td>)}
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn-ghost btn-icon btn-sm"
+                          onClick={() => onEdit(row)}
+                          disabled={deletingId != null}
+                          title="Editar" aria-label="Editar pendiente"
+                        >
+                          <Icon name="edit" size={14}/>
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-icon btn-sm"
+                          onClick={() => onDelete(row)}
+                          disabled={deletingId != null}
+                          style={{ color: 'var(--danger)' }}
+                          title="Eliminar" aria-label="Eliminar pendiente"
+                        >
+                          {isDeleting
+                            ? <div className="spinner" style={{ width: 14, height: 14 }}/>
+                            : <Icon name="trash" size={14}/>}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PageGerencia() {
   const toast = window.useToast();
-  const [data, setData]         = gm_uS([]);
+  const [data, setData]         = gm_uS([]);   // estado Pendiente
+  const [dataProc, setDataProc] = gm_uS([]);   // estado En proceso
+  const [dataComp, setDataComp] = gm_uS([]);   // estado Completado
   const [loading, setLoading]   = gm_uS(false);
+  const [loadingProc, setLoadingProc] = gm_uS(false);
+  const [loadingComp, setLoadingComp] = gm_uS(false);
   const [lastUpdate, setLastUpdate] = gm_uS(null);
   const [tick, setTick]         = gm_uS(0);
   const [showForm, setShowForm]     = gm_uS(false);
@@ -383,11 +451,27 @@ function PageGerencia() {
 
   const load = gm_uC(async () => {
     setLoading(true);
-    const items = await window.api.pendientesRegistro();
+    const items = await window.api.pendientesRegistro('Pendiente');
     setData(Array.isArray(items) ? items : (items?.data ?? []));
     setLastUpdate(new Date());
     setLoading(false);
   }, []);
+
+  const loadProc = gm_uC(async () => {
+    setLoadingProc(true);
+    const items = await window.api.pendientesRegistro('En proceso');
+    setDataProc(Array.isArray(items) ? items : (items?.data ?? []));
+    setLoadingProc(false);
+  }, []);
+
+  const loadComp = gm_uC(async () => {
+    setLoadingComp(true);
+    const items = await window.api.pendientesRegistro('terminado');
+    setDataComp(Array.isArray(items) ? items : (items?.data ?? []));
+    setLoadingComp(false);
+  }, []);
+
+  const reloadAll = gm_uC(() => { load(); loadProc(); loadComp(); }, [load, loadProc, loadComp]);
 
   const handleDelete = async (row) => {
     const id = pendId(row);
@@ -405,17 +489,16 @@ function PageGerencia() {
     setDeletingId(null);
     if (!rRecarga.ok) toast.warn('Eliminado, sin recargar', 'No se pudo recargar cola Java: ' + (rRecarga.error || ''));
     else toast.success('Pendiente eliminado', row.actividad || '');
-    load();
+    reloadAll();
   };
 
   gm_uE(() => {
-    load();
-    const refresh = setInterval(load, 30000);
+    reloadAll();
+    const refresh = setInterval(reloadAll, 30000);
     const tick    = setInterval(() => setTick(t => t + 1), 1000);
     return () => { clearInterval(refresh); clearInterval(tick); };
-  }, [load]);
+  }, [reloadAll]);
 
-  const cols = data.length > 0 ? Object.keys(data[0]) : [];
   const secondsAgo = lastUpdate ? Math.floor((Date.now() - lastUpdate) / 1000) : null;
 
   return (
@@ -424,14 +507,14 @@ function PageGerencia() {
         <ModalAgregarPendiente
           pendiente={editRow}
           onClose={() => { setShowForm(false); setEditRow(null); }}
-          onSaved={load}
+          onSaved={reloadAll}
         />
       )}
       {showDrawer && <DrawerJava onClose={() => setShowDrawer(false)}/>}
       <div className="section-header">
         <div>
           <h2 className="section-title">Monitor Gerencia</h2>
-          <p className="section-subtitle">Pendientes de registro — actualización automática cada 30 s.</p>
+          <p className="section-subtitle">Registro de pendientes — actualización automática cada 30 s.</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {secondsAgo !== null && (
@@ -441,8 +524,8 @@ function PageGerencia() {
           )}
           <button
             className="btn btn-ghost btn-sm"
-            onClick={load}
-            disabled={loading}
+            onClick={reloadAll}
+            disabled={loading || loadingProc || loadingComp}
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <Icon name="refresh" size={13} style={loading ? { animation: 'spin 1s linear infinite' } : undefined}/>
@@ -472,67 +555,21 @@ function PageGerencia() {
         <window.MiniStat label="Estado" value={loading ? 'Cargando…' : data.length === 0 ? 'Sin pendientes' : 'Activo'} icon="ok" tone={data.length === 0 ? 'success' : 'warn'}/>
       </div>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="card-header">
-          <h3 className="card-title">Pendientes de registro</h3>
-          {loading && <div className="spinner" style={{ width: 16, height: 16 }}/>}
-        </div>
-        <div className="table-wrap">
-          {data.length === 0 && !loading ? (
-            <div className="empty" style={{ padding: 48 }}>
-              <div className="empty-icon"><Icon name="ok"/></div>
-              <div>Sin pendientes de registro</div>
-            </div>
-          ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  {cols.map(k => (
-                    <th key={k}>{fmtHeader(k)}</th>
-                  ))}
-                  <th style={{ textAlign: 'right' }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((row, i) => {
-                  const rowId = pendId(row);
-                  const isDeleting = deletingId != null && deletingId === rowId;
-                  return (
-                    <tr key={row.id ?? row.id_registro ?? row.folio ?? i}>
-                      {cols.map(k => (
-                        <td key={k}>{fmtCell(k, row[k])}</td>
-                      ))}
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          <button
-                            className="btn btn-ghost btn-icon btn-sm"
-                            onClick={() => setEditRow(row)}
-                            disabled={deletingId != null}
-                            title="Editar" aria-label="Editar pendiente"
-                          >
-                            <Icon name="edit" size={14}/>
-                          </button>
-                          <button
-                            className="btn btn-ghost btn-icon btn-sm"
-                            onClick={() => handleDelete(row)}
-                            disabled={deletingId != null}
-                            style={{ color: 'var(--danger)' }}
-                            title="Eliminar" aria-label="Eliminar pendiente"
-                          >
-                            {isDeleting
-                              ? <div className="spinner" style={{ width: 14, height: 14 }}/>
-                              : <Icon name="trash" size={14}/>}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+      <RegistroTableCard
+        title="Registro de pendientes"
+        data={data} loading={loading} deletingId={deletingId}
+        onEdit={setEditRow} onDelete={handleDelete}
+      />
+      <RegistroTableCard
+        title="En proceso"
+        data={dataProc} loading={loadingProc} deletingId={deletingId}
+        onEdit={setEditRow} onDelete={handleDelete}
+      />
+      <RegistroTableCard
+        title="Completado"
+        data={dataComp} loading={loadingComp} deletingId={deletingId}
+        onEdit={setEditRow} onDelete={handleDelete}
+      />
     </div>
   );
 }

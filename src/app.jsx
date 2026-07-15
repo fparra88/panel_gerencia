@@ -163,7 +163,7 @@ function App() {
 
   a_uE(() => { if (auth) localStorage.setItem('zeutica-auth', JSON.stringify(auth)); }, [auth]);
   a_uE(() => { localStorage.setItem('zeutica-page', current); }, [current]);
-  a_uE(() => { window.api.token = auth?.token ?? null; window.api.id_usuario = auth?.id_usuario ?? null; }, [auth]);
+  a_uE(() => { window.api.token = auth?.token ?? null; window.api.id_usuario = auth?.id_usuario ?? null; window.api.usuario = auth?.user ?? null; }, [auth]);
   a_uE(() => { setMobileMenuOpen(false); }, [current]);
 
   // Cmd+K handler
