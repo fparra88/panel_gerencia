@@ -2,6 +2,7 @@
 const { useState: ap_uS, useEffect: ap_uE, useCallback: ap_uC } = React;
 
 const AP_API_JAVA = 'http://3.151.25.133:19999';   // backend Java (FDK) de Zeutica
+const AP_WEBHOOK_N8N = 'https://n8n-n8n.i4mjht.easypanel.host/webhook/zeutica-pendientes';
 
 async function apFetch(path, opts = {}) {
   try {
@@ -12,6 +13,27 @@ async function apFetch(path, opts = {}) {
   } catch (err) {
     console.error(`apFetch ${path} falló:`, err);
     return { ok: false, data: null, error: err.message || 'Sin conexión' };
+  }
+}
+
+// Notifica a n8n un cambio de estado de tarea ('pendiente_en_proceso' | 'pendiente_cerrado').
+// No bloquea el flujo: si falla, solo se loguea.
+async function apNotificarN8n(evento, tarea, user) {
+  if (!tarea) return;
+  try {
+    await fetch(AP_WEBHOOK_N8N, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(5000),
+      body: JSON.stringify({
+        evento,
+        usuario: user,
+        fechaEvento: new Date().toISOString(),
+        tarea,
+      }),
+    });
+  } catch (err) {
+    console.error(`Webhook n8n (${evento}) falló:`, err);
   }
 }
 
@@ -159,16 +181,19 @@ function PageAccionesPendientes({ user }) {
       toast.error('No se pudo atender', r.error || 'Sin conexión');
       return;
     }
-    setEnProceso(r.data?.atendido ?? null);
+    const atendido = r.data?.atendido ?? null;
+    apNotificarN8n('pendiente_en_proceso', atendido, user);
+    setEnProceso(atendido);
     setEnCola(r.data?.enCola ?? null);
     setSiguiente(null);
-    toast.info('En proceso', r.data?.atendido?.actividad || 'Tarea tomada');
+    toast.info('En proceso', atendido?.actividad || 'Tarea tomada');
   };
 
   // Atendido: marca terminado y avanza al siguiente en cola.
   const terminar = async () => {
     const id = enProceso?.id;
     if (id == null) return;
+    const tarea = enProceso;
     setActing(true);
     const url = `/api/pendientes/${id}/terminar?usuario=${encodeURIComponent(user)}`;
     const r = await apFetch(url, { method: 'POST' });
@@ -177,6 +202,7 @@ function PageAccionesPendientes({ user }) {
       toast.error('No se pudo terminar', r.error || 'Sin conexión');
       return;
     }
+    apNotificarN8n('pendiente_cerrado', tarea, user);
     toast.success('Tarea completada', enProceso?.actividad || '');
     window.fireConfetti?.();
     setEnProceso(null);

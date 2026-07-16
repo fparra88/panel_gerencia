@@ -211,6 +211,7 @@ function App() {
   const pages = {
     dashboard:    window.PageDashboard,
     acciones_pendientes: window.PageAccionesPendientes,
+    clientes_potenciales: window.PageClientesPotenciales,
     usuarios:     window.PageUsuarios,
     contrasena:   window.PageContrasena,
     inventario:   window.PageInventario,

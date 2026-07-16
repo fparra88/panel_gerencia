@@ -2,8 +2,8 @@
 // Primary: real backend. Mock data sólo se conserva para el login demo
 // (cuando no hay servidor). Los datos de negocio vienen SIEMPRE de la API.
 
-const API_BASE = 'http://3.151.25.133:8090'; // servidor en AWS
-//const API_BASE = 'http://127.0.0.1:8000'; // para desarrollo local
+//const API_BASE = 'http://3.151.25.133:8090'; // servidor en AWS
+const API_BASE = 'http://127.0.0.1:8000'; // para desarrollo local
 
 const USE_MOCK_LOGIN_FALLBACK = true; // permite demo/login sin backend
 const REQUEST_TIMEOUT = 4000;
@@ -186,6 +186,12 @@ const api = {
     const r = await tryFetch('/zeutica/clientes');
     return r.ok ? r.data : [];
   },
+  async clientesPotenciales() {
+    const r = await tryFetch('/zeutica/clientes-potenciales');
+    if (!r.ok) return { ok: false, error: r.error, data: [] };
+    const lista = Array.isArray(r.data) ? r.data : (r.data?.clientes ?? r.data?.items ?? []);
+    return { ok: true, data: lista };
+  },
   async crearCliente(payload, usuario) {
     const u = encodeURIComponent(usuario || api.usuario || '');
     return tryFetch(`/zeutica/clientenuevo/${u}`, { method: 'POST', body: JSON.stringify(payload) });
@@ -233,6 +239,14 @@ const api = {
   },
   async registrarCompra(payload) {
     return tryFetch('/zeutica/compras', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async proveedores() {
+    const r = await tryFetch('/zeutica/proveedores');
+    if (!r.ok) return [];
+    return Array.isArray(r.data) ? r.data : (r.data?.proveedores ?? r.data?.data ?? []);
+  },
+  async crearProveedor(payload) {
+    return tryFetch('/zeutica/proveedor-nuevo', { method: 'POST', body: JSON.stringify(payload) });
   },
   // Cuentas por pagar (deuda a proveedores). Espejo de creditos/abonos.
   async cuentasPorPagar() {

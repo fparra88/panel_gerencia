@@ -7,6 +7,10 @@ function PageCompras() {
   const [showForm, setShowForm] = rp_uS(false);
   const [numFactura, setNumFactura] = rp_uS('');
   const [proveedor, setProveedor] = rp_uS('');
+  const [proveedores, setProveedores] = rp_uS([]);
+  const [showNuevoProv, setShowNuevoProv] = rp_uS(false);
+  const [nuevoProv, setNuevoProv] = rp_uS({ proveedor: '', contacto: '', telefono: '', email: '', direccion: '', credito: false });
+  const [savingProv, setSavingProv] = rp_uS(false);
   const [ivaPct, setIvaPct] = rp_uS(16);
   const [fechaFactura, setFechaFactura] = rp_uS(() => new Date().toISOString().slice(0, 10));
   const [condicionPago, setCondicionPago] = rp_uS('CONTADO');
@@ -26,8 +30,9 @@ function PageCompras() {
   rp_uE(() => {
     if (!showForm) return;
     (async () => {
-      const prods = await window.api.productos();
+      const [prods, provs] = await Promise.all([window.api.productos(), window.api.proveedores()]);
       setProductos(prods);
+      setProveedores(provs);
       if (prods.length > 0) setSelectedSku(prods[0].sku);
     })();
   }, [showForm]);
@@ -38,6 +43,38 @@ function PageCompras() {
   }, [selectedSku]);
 
   const prodObj = rp_uM(() => productos.find(p => p.sku === selectedSku), [productos, selectedSku]);
+  const provObj = rp_uM(() => proveedores.find(p => p.proveedor === proveedor), [proveedores, proveedor]);
+
+  // Al elegir proveedor: autocompleta condición de pago según su flag de crédito.
+  const onSelectProveedor = (nombre) => {
+    setProveedor(nombre);
+    const p = proveedores.find(x => x.proveedor === nombre);
+    if (p) setCondicionPago(p.credito ? 'CREDITO' : 'CONTADO');
+  };
+
+  const guardarProveedor = async () => {
+    const nombre = nuevoProv.proveedor.trim();
+    if (!nombre) { toast.error('Falta nombre', 'El nombre del proveedor es obligatorio'); return; }
+    setSavingProv(true);
+    // Campos según tabla proveedores: contacto default 'Sin Contacto', telefono INT, credito BOOL.
+    const payload = {
+      proveedor: nombre,
+      contacto: nuevoProv.contacto.trim() || 'Sin Contacto',
+      telefono: nuevoProv.telefono ? Number(nuevoProv.telefono) : null,
+      email: nuevoProv.email.trim() || null,
+      direccion: nuevoProv.direccion.trim() || null,
+      credito: !!nuevoProv.credito,
+    };
+    const r = await window.api.crearProveedor(payload);
+    setSavingProv(false);
+    if (!r.ok) { toast.error('No se pudo guardar proveedor', r.error || 'Verifica conexión con el servidor'); return; }
+    toast.success('Proveedor agregado', nombre);
+    setShowNuevoProv(false);
+    setNuevoProv({ proveedor: '', contacto: '', telefono: '', email: '', direccion: '', credito: false });
+    setProveedores(await window.api.proveedores());
+    setProveedor(nombre);
+    setCondicionPago(payload.credito ? 'CREDITO' : 'CONTADO');
+  };
   const listaProm = costoUnit > 0 ? [...costosBd, costoUnit] : costosBd;
   const costoProm = listaProm.length > 0 ? listaProm.reduce((s, v) => s + v, 0) / listaProm.length : 0;
   const subtotalItem = qtyItem * costoUnit * (1 - descItem / 100);
@@ -55,7 +92,7 @@ function PageCompras() {
     return d.toISOString().slice(0, 10);
   }, [condicionPago, fechaFactura, plazoDias]);
 
-  const resetForm = () => { setCarrito([]); setNumFactura(''); setProveedor(''); setIvaPct(16); setFechaFactura(new Date().toISOString().slice(0, 10)); setCondicionPago('CONTADO'); setPlazoDias(30); setShowForm(false); };
+  const resetForm = () => { setCarrito([]); setNumFactura(''); setProveedor(''); setIvaPct(16); setFechaFactura(new Date().toISOString().slice(0, 10)); setCondicionPago('CONTADO'); setPlazoDias(30); setShowForm(false); setShowNuevoProv(false); setNuevoProv({ proveedor: '', contacto: '', telefono: '', email: '', direccion: '', credito: false }); };
 
   const agregarItem = () => {
     if (!selectedSku || qtyItem < 1 || costoUnit <= 0) {
@@ -132,10 +169,68 @@ function PageCompras() {
               <div className="field"><label className="field-label"># Factura</label>
                 <input className="input" value={numFactura} onChange={e => setNumFactura(e.target.value)} placeholder="FAC-2024-001"/></div>
               <div className="field"><label className="field-label">Proveedor</label>
-                <input className="input" value={proveedor} onChange={e => setProveedor(e.target.value)} placeholder="Nombre del proveedor"/></div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <select className="select" style={{ flex: 1 }} value={proveedor} onChange={e => onSelectProveedor(e.target.value)}>
+                    <option value="">Selecciona proveedor...</option>
+                    {proveedores.map(p => <option key={p.id ?? p.proveedor} value={p.proveedor}>{p.proveedor}</option>)}
+                  </select>
+                  <button className="btn btn-secondary btn-icon" title="Agregar proveedor nuevo" onClick={() => setShowNuevoProv(v => !v)}>
+                    <Icon name={showNuevoProv ? 'x' : 'plus'} size={14}/>
+                  </button>
+                </div></div>
               <div className="field"><label className="field-label">IVA (%)</label>
                 <input className="input mono" type="number" min="0" max="100" step="0.5" value={ivaPct} onChange={e => setIvaPct(Number(e.target.value) || 0)}/></div>
             </div>
+
+            {/* Alta de proveedor nuevo (POST /zeutica/proveedor-nuevo) */}
+            {showNuevoProv && (
+              <div style={{ padding: 12, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', border: '1px dashed var(--line-strong)' }}>
+                <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Nuevo proveedor</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+                  <div className="field" style={{ margin: 0 }}><label className="field-label">Proveedor *</label>
+                    <input className="input" value={nuevoProv.proveedor} onChange={e => setNuevoProv(p => ({ ...p, proveedor: e.target.value }))} placeholder="Nombre / razón social"/></div>
+                  <div className="field" style={{ margin: 0 }}><label className="field-label">Contacto</label>
+                    <input className="input" value={nuevoProv.contacto} onChange={e => setNuevoProv(p => ({ ...p, contacto: e.target.value }))} placeholder="Sin Contacto"/></div>
+                  <div className="field" style={{ margin: 0 }}><label className="field-label">Teléfono</label>
+                    <input className="input mono" type="number" value={nuevoProv.telefono} onChange={e => setNuevoProv(p => ({ ...p, telefono: e.target.value }))} placeholder="3312345678"/></div>
+                  <div className="field" style={{ margin: 0 }}><label className="field-label">Email</label>
+                    <input className="input" type="email" value={nuevoProv.email} onChange={e => setNuevoProv(p => ({ ...p, email: e.target.value }))} placeholder="ventas@proveedor.mx"/></div>
+                  <div className="field" style={{ margin: 0, gridColumn: 'span 2' }}><label className="field-label">Dirección</label>
+                    <input className="input" value={nuevoProv.direccion} onChange={e => setNuevoProv(p => ({ ...p, direccion: e.target.value }))} placeholder="Calle, número, ciudad"/></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', userSelect: 'none' }}>
+                    <input type="checkbox" checked={nuevoProv.credito} onChange={e => setNuevoProv(p => ({ ...p, credito: e.target.checked }))}/>
+                    Maneja crédito
+                  </label>
+                  <button className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }} disabled={savingProv} onClick={guardarProveedor}>
+                    {savingProv ? <><span className="spinner"/> Guardando...</> : <><Icon name="check" size={13}/> Guardar proveedor</>}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Datos del proveedor seleccionado (solo lectura) */}
+            {provObj && !showNuevoProv && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10 }}>
+                <div className="field" style={{ margin: 0 }}><label className="field-label">Contacto</label>
+                  <input className="input" value={provObj.contacto || ''} disabled/></div>
+                <div className="field" style={{ margin: 0 }}><label className="field-label">Teléfono</label>
+                  <input className="input mono" value={provObj.telefono ?? ''} disabled/></div>
+                <div className="field" style={{ margin: 0 }}><label className="field-label">Email</label>
+                  <input className="input" value={provObj.email || ''} disabled/></div>
+                <div className="field" style={{ margin: 0 }}><label className="field-label">Crédito</label>
+                  <div style={{ paddingTop: 6 }}>
+                    <span className={`badge badge-${provObj.credito ? 'success' : 'info'}`}>
+                      <span className="badge-dot"/>{provObj.credito ? 'Con crédito' : 'Solo contado'}
+                    </span>
+                  </div></div>
+                {provObj.direccion && (
+                  <div className="field" style={{ margin: 0, gridColumn: 'span 4' }}><label className="field-label">Dirección</label>
+                    <input className="input" value={provObj.direccion} disabled/></div>
+                )}
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: condicionPago === 'CREDITO' ? '1fr 1fr 1fr 1fr' : '1fr 1fr', gap: 12 }}>
               <div className="field"><label className="field-label">Fecha factura</label>
                 <input className="input" type="date" value={fechaFactura} onChange={e => setFechaFactura(e.target.value)}/></div>

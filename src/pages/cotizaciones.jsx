@@ -470,6 +470,8 @@ function PageCotizaciones({ user }) {
     const records = Object.entries(editRelaciones)
       .filter(([, v]) => v.relacion_factura || v.metodo_pago || v.fecha_pago)
       .map(([codigo, v]) => ({
+        // El nombre del cliente no vive en editRelaciones: se busca en la cotización.
+        nombre: cots.find(c => c.codigo_cotizacion === codigo)?.empresa || null,
         codigo_cotizacion: codigo,
         relacion_factura: v.relacion_factura || null,
         metodo_pago: v.metodo_pago || null,
