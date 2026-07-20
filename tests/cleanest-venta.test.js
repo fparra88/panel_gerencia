@@ -31,7 +31,7 @@ test('venta no existe (404) → registra con payload correcto', async () => {
   assert.equal(r.accion, 'registrada');
   assert.equal(api.calls.registrar.length, 1);
   const p = api.calls.registrar[0];
-  assert.equal(p.id_venta, '12345');           // sin prefijo OC
+  assert.equal(p.id_venta, '12345');           // string, solo dígitos (sin OC)
   assert.equal(p.sku, 'UNIAZLMED');
   assert.equal(p.producto, 'Uniforme Azul Mediano');
   assert.equal(p.stock_clean, 10);
@@ -104,8 +104,19 @@ test('producto sin datos en inventario → usa sku como nombre y precio 0', asyn
   assert.equal(r.payload.precio, 0);
 });
 
-test('nordenCorto solo quita prefijo OC', () => {
+test('numero_orden sin dígitos (ej. "OCprueba") → error, no llama backend, no manda id_venta vacío', async () => {
+  const api = apiMock({ verifica: () => ({ ok: false, status: 404 }) });
+  const pedidoSinDigitos = { numero_orden: 'OCprueba', sku: 'UNIAZLMED', cantidad: '1' };
+  const r = await cv.procesarVentaHistorial({ pedido: pedidoSinDigitos, inv: INV, api, usuario: 'fparra' });
+  assert.equal(r.accion, 'error');
+  assert.match(r.error, /dígitos/);
+  assert.equal(api.calls.verificar.length, 0);
+  assert.equal(api.calls.registrar.length, 0);
+});
+
+test('nordenCorto deja solo dígitos (quita OC y no-dígitos)', () => {
   assert.equal(cv.nordenCorto('OC12345'), '12345');
   assert.equal(cv.nordenCorto('12345'), '12345');   // sin prefijo no corta nada
+  assert.equal(cv.nordenCorto('OC-123 A'), '123');  // limpia guiones/espacios/letras
   assert.equal(cv.nordenCorto(''), '');
 });

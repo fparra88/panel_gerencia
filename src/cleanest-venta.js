@@ -9,11 +9,14 @@
   const ventasProcesadas = new Set();
 
   function nordenCorto(numeroOrden) {
-    return String(numeroOrden || '').replace(/^OC/, '');
+    // Solo los dígitos: quita "OC" y cualquier otro caracter no numérico.
+    return String(numeroOrden || '').replace(/\D/g, '');
   }
 
   function construirPayloadCleanest(pedido, item, usuario, fechaIso) {
     return {
+      // id_venta = orden Cleanest sin OC, solo dígitos, como STRING.
+      // Backend exige string (schema string_type); mandar int/NaN -> null -> 422.
       id_venta: nordenCorto(pedido.numero_orden),
       sku: pedido.sku,
       producto: item.nombre || pedido.sku,
@@ -31,6 +34,10 @@
   // Devuelve { accion: 'ignorada' | 'registrada' | 'en-proceso' | 'error', norden, payload?, error? }
   async function procesarVentaHistorial({ pedido, inv, api, usuario, ahora }) {
     const corto = nordenCorto(pedido.numero_orden);
+    if (!corto) {
+      // numero_orden sin dígitos (ej. "OCprueba") -> nunca mandar id_venta vacío al backend.
+      return { accion: 'error', norden: pedido.numero_orden, error: `Orden "${pedido.numero_orden}" no tiene dígitos válidos` };
+    }
     if (ventasProcesadas.has(corto)) return { accion: 'en-proceso', norden: corto };
     ventasProcesadas.add(corto);
     try {

@@ -115,7 +115,7 @@ function PageInventario({ user }) {
           <table className="table">
             <thead><tr>
               <th>SKU</th><th>Producto</th><th>Categoría</th>
-              <th className="td-right">Stock</th><th className="td-right">Stock Full</th><th className="td-right">Stock FBA</th><th className="td-right">Stock Clean</th><th className="td-right">Stock Total</th><th className="td-right">Mínimo</th>
+              <th className="td-right">Stock</th><th className="td-right">Stock FBA</th><th className="td-right">Stock Clean</th><th className="td-right">Stock Total</th><th className="td-right">Mínimo</th>
               <th className="td-right">Costo</th><th className="td-right">Precio</th><th></th>
             </tr></thead>
             <tbody>
@@ -133,8 +133,7 @@ function PageInventario({ user }) {
                       <td className="mono" style={{ fontSize: 12 }}>{p.sku}</td>
                       <td>{p.nombre}</td>
                       <td><span className="badge">{p.categoria}</span></td>
-                      <td className="td-right mono"><span className={`badge badge-${tone}`}><span className="badge-dot"/>{p.stock_bodega}</span></td>
-                      <td className="td-right td-muted mono">{p.stock_full ?? '—'}</td>
+                      <td className="td-right mono"><span className={`badge badge-${tone}`}><span className="badge-dot"/>{p.stock_bodega}</span></td>                      
                       <td className="td-right td-muted mono">{p.stock_fba ?? '—'}</td>
                       <td className="td-right td-muted mono">{p.stock_clean ?? '—'}</td>
                       <td className="td-right td-muted mono">{p.stock_total ?? '—'}</td>
